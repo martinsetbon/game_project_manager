@@ -1,0 +1,10 @@
+<h1><%= @project_feature.name %></h1>
+<p><strong>Duration:</strong> <%= @project_feature.duration %> days</p>
+<p><strong>Contributors:</strong></p>
+<ul>
+  <% @project_feature.contributors.each do |user| %>
+    <li><%= user.name %> - <%= user.job %></li>
+  <% end %>
+</ul>
+<%= link_to 'Edit', edit_project_project_feature_path(@project, @project_feature) %> |
+<%= link_to 'Back to Project', project_path(@project) %>

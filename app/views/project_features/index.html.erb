@@ -1,0 +1,14 @@
+<p style="color: green"><%= notice %></p>
+
+<h1>Project features</h1>
+
+<div id="project_features">
+  <% @project_features.each do |project_feature| %>
+    <%= render project_feature %>
+    <p>
+      <%= link_to "Show this project feature", project_feature %>
+    </p>
+  <% end %>
+</div>
+
+<%= link_to "New project feature", new_project_feature_path %>

@@ -1,0 +1,35 @@
+<%= simple_form_for(@project) do |f| %>
+  <%= f.input :name %>
+  <%= f.input :description %>
+  <%= f.input :start_date, as: :date %>
+  <%= f.input :end_date, as: :date %>
+  <!-- Budget with Currency dropdown and number input -->
+  <div class="form-group">
+    <%= f.input :currency, as: :select, collection: ['USD', 'EUR', 'JPY'], label: "Currency" %>
+    <%= f.input :budget, as: :text, label: "Budget (Amount)" %>
+  </div>
+  <!-- Team Members: Checkboxes to remove -->
+  <div class="form-group">
+    <label>Team Members (uncheck to remove)</label><br>
+    <% @project.contributors.each do |contributor| %>
+      <div class="form-check">
+        <label class="form-check-label">
+          <%= check_box_tag "project[contributor_ids][]", contributor.id, true %>
+          <%= "#{contributor.name} - #{contributor.job} (#{contributor.available ? 'Available' : 'Not Available'})" %>
+        </label>
+      </div>
+    <% end %>
+  </div>
+  <!-- Add Contributor Dropdown -->
+  <div class="form-group">
+    <%= label_tag "Add Contributors" %>
+    <%= select_tag "project[contributor_ids][]", options_from_collection_for_select(
+        @users.where(available: true).where.not(id: @project.contributor_ids),
+        :id,
+        ->(u) { "#{u.name} - #{u.job} (Available)" }
+      ),
+      include_blank: "Select a contributor to add",
+      class: "form-control" %>
+  </div>
+  <%= f.submit "Update Project", class: "btn btn-primary" %>
+<% end %>

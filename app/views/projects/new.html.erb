@@ -1,0 +1,14 @@
+<%= simple_form_for(@project) do |f| %>
+  <%= f.input :name %>
+  <%= f.input :description %>
+  <%= f.input :start_date, as: :date %>
+  <%= f.input :end_date, as: :date %>
+  <!-- Budget with Currency dropdown and number input -->
+  <div class="form-group">
+    <%= f.input :currency, as: :select, collection: ['USD', 'EUR', 'JPY'], label: "Currency" %>
+    <%= f.input :budget, as: :text, label: "Budget (Amount)" %>
+  </div>
+  <!-- Contributors input -->
+  <%= f.input :contributor_ids, as: :select, collection: @users.where(available: true).map { |user| [ "#{user.name} - #{user.job} (Available)", user.id ] }, label_method: :first, value_method: :last, include_blank: false, label: "Select Contributors", multiple: true %>
+  <%= f.submit "Create Project", class: "btn btn-primary" %>
+<% end %>

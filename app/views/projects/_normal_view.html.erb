@@ -1,0 +1,10 @@
+<ul>
+  <% project_features.each do |feature| %>
+    <li>
+      <%= feature.name %> — <%= pluralize(feature.duration, 'day') %>
+      <% if feature.contributors.any? %>
+        (Assigned: <%= feature.contributors.map(&:name).join(', ') %>)
+      <% end %>
+    </li>
+  <% end %>
+</ul>

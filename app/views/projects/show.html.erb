@@ -1,0 +1,19 @@
+<h1><%= @project.name %></h1>
+<p><strong>Description:</strong> <%= @project.description %></p>
+<p><strong>Start Date:</strong> <%= @project.start_date %></p>
+<p><strong>End Date:</strong> <%= @project.end_date || "No deadline yet" %></p>
+<p><strong>Budget:</strong> <%= @project.budget %></p>
+<div class="mb-3">
+  <%= link_to 'Edit Project', edit_project_path(@project), class: "btn btn-warning" %>
+  <%= link_to 'Back to Projects', projects_path, class: "btn btn-secondary" %>
+</div>
+<!-- Team Members Button -->
+<h3 class="mt-4">Team</h3>
+<%= link_to 'View Team Members', team_project_path(@project), class: "btn btn-outline-primary" %>
+<!-- Features Section -->
+<h3 class="mt-4">Features</h3>
+<%= link_to 'New Feature', new_project_project_feature_path(@project), class: "btn btn-success mb-3" %>
+<%= render 'normal_view', project_features: @project_features %>
+<!-- Timeline Section -->
+<h3 class="mt-4">Timeline View</h3>
+<%= render 'timeline_view', project: @project %>

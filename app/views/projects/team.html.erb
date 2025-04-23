@@ -1,0 +1,21 @@
+<h2>Team for <%= @project.name %></h2>
+<!-- Display current contributors -->
+<ul>
+  <% @project.contributors.each do |user| %>
+    <li>
+      <%= user.name %> - <%= user.job %>
+      <% if current_user == @project.user %>  <!-- Only the project owner can remove contributors -->
+        <%= link_to "Remove", project_project_contributor_path(@project, user_id: user.id), method: :delete, data: { confirm: "Are you sure?" } %>
+      <% end %>
+    </li>
+  <% end %>
+</ul>
+<!-- Allow project owner to add contributors -->
+<% if current_user == @project.user %>
+  <%= form_with url: project_project_contributors_path(@project), method: :post, local: true do |form| %>
+    <h4>Add Contributor</h4>
+    <%= select_tag :user_id, options_from_collection_for_select(User.where(available: true), :id, :name), prompt: "Select user" %>
+    <%= form.submit "Add" %>
+  <% end %>
+<% end %>
+<%= link_to 'Back to project', project_path(@project) %>

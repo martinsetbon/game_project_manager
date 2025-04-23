@@ -1,0 +1,27 @@
+<%= form_with(model: [@project, @project_feature], local: true) do |form| %>
+  <% if @project_feature.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@project_feature.errors.count, "error") %> prohibited this feature from being saved:</h2>
+      <ul>
+        <% @project_feature.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+  <div class="field">
+    <%= form.label :name %>
+    <%= form.text_field :name %>
+  </div>
+  <div class="field">
+    <%= form.label :duration, "Duration (days)" %>
+    <%= form.number_field :duration %>
+  </div>
+  <div class="field">
+    <%= form.label :contributor_ids, "Assign contributors" %><br>
+    <%= form.collection_select :contributor_ids, @users, :id, :name, {}, { multiple: true } %>
+  </div>
+  <div class="actions">
+    <%= form.submit %>
+  </div>
+<% end %>
