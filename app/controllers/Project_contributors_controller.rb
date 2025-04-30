@@ -8,8 +8,8 @@ class ProjectContributorsController < ApplicationController
   end
 
   def destroy
-    user = User.find(params[:user_id])
-    @project.contributors.delete(user) # Remove the contributor from the project
+    contributor = ProjectContributor.find(params[:id])
+    contributor.destroy
     redirect_to team_project_path(@project), notice: "Contributor removed successfully."
   end
 

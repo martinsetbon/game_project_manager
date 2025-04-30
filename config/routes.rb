@@ -7,8 +7,13 @@ Rails.application.routes.draw do
       get :team
     end
 
-    resources :project_features
-    resources :project_contributors, only: [:create, :destroy], param: :user_id
+    resources :project_features do
+      member do
+        patch :update_status
+      end
+    end
+
+    resources :project_contributors, only: [:create, :destroy]
   end
 
   root to: 'projects#index'

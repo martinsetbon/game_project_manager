@@ -2,7 +2,7 @@
   <% project.project_features.each do |feature| %>
     <div class="timeline-item">
       <strong><%= feature.name %></strong>
-      <span>— <%= feature.start_date %> to <%= feature.end_date %></span>
+      <span> <%= feature.duration %></span>
     </div>
   <% end %>
 </div>

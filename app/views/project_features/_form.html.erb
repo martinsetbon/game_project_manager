@@ -1,27 +1,68 @@
-<%= form_with(model: [@project, @project_feature], local: true) do |form| %>
-  <% if @project_feature.errors.any? %>
-    <div id="error_explanation">
-      <h2><%= pluralize(@project_feature.errors.count, "error") %> prohibited this feature from being saved:</h2>
-      <ul>
-        <% @project_feature.errors.full_messages.each do |message| %>
-          <li><%= message %></li>
-        <% end %>
-      </ul>
+<%= simple_form_for([@project, @project_feature], data: {
+  turbo_frame: "project_features",
+  controller: "feature-assignment",
+  action: "turbo:submit-end->feature-assignment#handleSubmission"
+}) do |f| %>
+  <div class="form-group mb-3">
+    <%= f.input :name, label: "Feature Name" %>
+  </div>
+  <div class="form-group mb-3">
+    <%= f.input :duration, label: "Feature Duration (days)" %>
+  </div>
+  <div class="form-group mb-3">
+    <%= f.input :responsible_contributor_id,
+                as: :select,
+                collection: @project.project_contributors.includes(:user).map { |pc| [pc.user.name, pc.user.id] },
+                label: "Assign Responsible Team Member (Optional)",
+                include_blank: "No assignment",
+                selected: @project_feature.responsible_contributors.first&.id,
+                input_html: {
+                  data: {
+                    feature_assignment_target: "responsibleSelect",
+                    action: "change->feature-assignment#checkDuplicate"
+                  }
+                } %>
+  </div>
+  <div class="form-group mb-3">
+    <%= f.input :accountable_contributor_id,
+                as: :select,
+                collection: @project.project_contributors.includes(:user).map { |pc| [pc.user.name, pc.user.id] },
+                label: "Assign Accountable Team Member (Optional)",
+                include_blank: "No assignment",
+                selected: @project_feature.accountable_contributors.first&.id,
+                input_html: {
+                  data: {
+                    feature_assignment_target: "accountableSelect",
+                    action: "change->feature-assignment#checkDuplicate"
+                  }
+                } %>
+  </div>
+  <!-- Modal -->
+  <div class="modal fade" id="duplicateAssignmentModal" tabindex="-1" data-feature-assignment-target="modal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Warning</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          It is recommended to assign different people as responsible and accountable.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" data-action="click->feature-assignment#confirmDuplicate">
+            Proceed Anyway
+          </button>
+        </div>
+      </div>
     </div>
-  <% end %>
-  <div class="field">
-    <%= form.label :name %>
-    <%= form.text_field :name %>
   </div>
-  <div class="field">
-    <%= form.label :duration, "Duration (days)" %>
-    <%= form.number_field :duration %>
-  </div>
-  <div class="field">
-    <%= form.label :contributor_ids, "Assign contributors" %><br>
-    <%= form.collection_select :contributor_ids, @users, :id, :name, {}, { multiple: true } %>
-  </div>
-  <div class="actions">
-    <%= form.submit %>
+  <div class="form-group">
+    <%= f.button :submit, "Save Feature",
+                 class: "btn btn-primary",
+                 data: {
+                   feature_assignment_target: "submitButton",
+                   disable_with: "Saving..."
+                 } %>
   </div>
 <% end %>

@@ -1,21 +1,28 @@
 <h2>Team for <%= @project.name %></h2>
 <!-- Display current contributors -->
-<ul>
-  <% @project.contributors.each do |user| %>
-    <li>
-      <%= user.name %> - <%= user.job %>
-      <% if current_user == @project.user %>  <!-- Only the project owner can remove contributors -->
-        <%= link_to "Remove", project_project_contributor_path(@project, user_id: user.id), method: :delete, data: { confirm: "Are you sure?" } %>
+<ul id="contributors">
+  <% @project.project_contributors.includes(:user).each do |pc| %>
+    <li id="contributor_<%= pc.id %>">
+      <%= pc.user.name %> - <%= pc.user.job.presence || "No job title" %>
+      <% if current_user == @project.user %>
+        <%= link_to "Remove",
+            project_project_contributor_path(@project, pc),
+            data: { turbo_method: :delete, turbo_confirm: "Are you sure?" },
+            class: "text-danger ms-2" %>
       <% end %>
     </li>
   <% end %>
 </ul>
 <!-- Allow project owner to add contributors -->
 <% if current_user == @project.user %>
-  <%= form_with url: project_project_contributors_path(@project), method: :post, local: true do |form| %>
+  <%= form_with url: project_project_contributors_path(@project), method: :post, data: { turbo_frame: "new_contributor" } do %>
     <h4>Add Contributor</h4>
-    <%= select_tag :user_id, options_from_collection_for_select(User.where(available: true), :id, :name), prompt: "Select user" %>
-    <%= form.submit "Add" %>
+    <% assigned_user_ids = @project.project_contributors.pluck(:user_id) %>
+    <%= select_tag :user_id,
+          options_from_collection_for_select(User.where(available: true).where.not(id: assigned_user_ids), :id, :name),
+          prompt: "Select user",
+          class: "form-select mb-2" %>
+    <%= submit_tag "Add", class: "btn btn-primary" %>
   <% end %>
 <% end %>
-<%= link_to 'Back to project', project_path(@project) %>
+<%= link_to 'Back to project', project_path(@project), class: "btn btn-outline-secondary mt-3" %>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_04_23_084525) do
+ActiveRecord::Schema[7.1].define(version: 2025_04_27_170903) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -19,6 +19,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_04_23_084525) do
     t.bigint "project_feature_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "role", default: "responsible", null: false
     t.index ["project_feature_id"], name: "index_feature_assignments_on_project_feature_id"
     t.index ["user_id"], name: "index_feature_assignments_on_user_id"
   end
@@ -38,6 +39,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_04_23_084525) do
     t.bigint "project_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "status", default: "not_started", null: false
     t.index ["project_id"], name: "index_project_features_on_project_id"
   end
 
