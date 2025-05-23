@@ -12,29 +12,76 @@
 <%= link_to 'View Team Members', team_project_path(@project), class: "btn btn-outline-primary" %>
 <!-- Features Section -->
 <h2 class="mt-4">Features</h2>
-<div class="mb-3">
-  <%= link_to 'New Feature', new_project_project_feature_path(@project), class: "btn btn-primary" %>
-</div>
-<div class="row row-cols-4 row-cols-md-6 row-cols-lg-8 g-2">
-  <% @project.project_features.each do |feature| %>
-    <% status_class = case feature.status
-                     when 'not_started' then 'bg-warning bg-opacity-25'
-                     when 'work_in_progress' then 'bg-primary bg-opacity-25'
-                     when 'job_done' then 'bg-success bg-opacity-25'
-                     else 'bg-light'
-                     end %>
-    <div class="col">
-      <div class="card h-100 <%= status_class %>">
-        <div class="card-body p-2">
-          <h6 class="card-title mb-1 text-truncate"><%= feature.name %></h6>
-          <span class="badge <%= status_badge_class(feature.status) %>">
-            <%= feature.status.humanize %>
-          </span>
-        </div>
-      </div>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <%= link_to 'New Feature', new_project_project_feature_path(@project), class: "btn btn-primary" %>
+  </div>
+  <%= form_tag project_path(@project), method: :get, class: 'ms-3' do %>
+    <div class="btn-group" role="group">
+      <% statuses = {
+        'not_started' => ['Not Started', 'warning'],
+        'work_in_progress' => ['On Going', 'primary'],
+        'job_done' => ['Done', 'success']
+      } %>
+      
+      <% selected_statuses = Array(params[:statuses]) %>
+      
+      <% statuses.each do |status_key, (label, color)| %>
+        <input type="checkbox" 
+               class="btn-check" 
+               name="statuses[]" 
+               value="<%= status_key %>" 
+               id="status_<%= status_key %>" 
+               <%= 'checked' if selected_statuses.include?(status_key) %>
+               autocomplete="off"
+               onchange="this.form.submit()">
+        <label class="btn btn-outline-<%= color %>" for="status_<%= status_key %>">
+          <%= label %>
+        </label>
+      <% end %>
     </div>
   <% end %>
 </div>
+<% selected_statuses = Array(params[:statuses]) %>
+<% features = if selected_statuses.present?
+                @project.project_features.where(status: selected_statuses)
+              else
+                @project.project_features
+              end %>
+<% features.order(:status).group_by(&:status).each do |status, grouped_features| %>
+  <div class="mb-4">
+    <% status_label = case status
+                     when 'not_started' then 'Not Started'
+                     when 'work_in_progress' then 'On Going'
+                     when 'job_done' then 'Done'
+                     end %>
+    <small class="text-muted d-inline-block mb-2">
+      <%= status_label %> (<%= grouped_features.count %>)
+    </small>
+    <div class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-2">
+      <% grouped_features.sort_by(&:created_at).reverse_each do |feature| %>
+        <% status_class = case feature.status
+                         when 'not_started' then 'bg-warning bg-opacity-25'
+                         when 'work_in_progress' then 'bg-primary bg-opacity-25'
+                         when 'job_done' then 'bg-success bg-opacity-25'
+                         else 'bg-light'
+                         end %>
+        <div class="col">
+          <%= link_to project_project_feature_path(@project, feature), class: "text-decoration-none" do %>
+            <div class="card h-100 <%= status_class %> hover-shadow">
+              <div class="card-body p-2">
+                <h6 class="card-title mb-1 text-truncate"><%= feature.name %></h6>
+                <span class="badge <%= status_badge_class(feature.status) %>">
+                  <%= feature.status.humanize %>
+                </span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>
 <!-- Timeline Section -->
 <h3 class="mt-4">Timeline View</h3>
 <%= render 'timeline_view', project: @project %>

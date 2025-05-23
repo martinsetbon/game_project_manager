@@ -10,6 +10,14 @@
     <%= f.input :duration, label: "Feature Duration (days)" %>
   </div>
   <div class="form-group mb-3">
+    <%= f.input :status,
+                as: :select,
+                collection: [['Not Started', 'not_started'], ['On Going', 'work_in_progress'], ['Done', 'job_done']],
+                label: "Feature Status",
+                include_blank: false,
+                selected: @project_feature.status || 'not_started' %>
+  </div>
+  <div class="form-group mb-3">
     <%= f.input :responsible_contributor_id,
                 as: :select,
                 collection: @project.project_contributors.includes(:user).map { |pc| [pc.user.name, pc.user.id] },
@@ -37,22 +45,27 @@
                   }
                 } %>
   </div>
+  <!-- Button trigger modal -->
+  <button type="button"
+        class="btn btn-primary d-none"
+        data-bs-toggle="modal"
+        data-bs-target="#staticBackdrop"
+        data-feature-assignment-target="popupButton">
+    Launch static backdrop modal
+  </button>
   <!-- Modal -->
-  <div class="modal fade" id="duplicateAssignmentModal" tabindex="-1" data-feature-assignment-target="modal">
+  <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Warning</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <h1 class="modal-title fs-5" id="staticBackdropLabel">Same name</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          It is recommended to assign different people as responsible and accountable.
+          "Be careful, the same person is assigned as "responsible' and "accountable", this is not the usuall way to do it."
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" data-action="click->feature-assignment#confirmDuplicate">
-            Proceed Anyway
-          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Understood</button>
         </div>
       </div>
     </div>

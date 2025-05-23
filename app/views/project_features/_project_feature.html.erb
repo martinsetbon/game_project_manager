@@ -1,17 +1,20 @@
-<div id="<%= dom_id project_feature %>">
-  <p>
-    <strong>Name:</strong>
-    <%= project_feature.name %>
-  </p>
+<%= link_to project_project_feature_path(project_feature.project, project_feature), class: "text-decoration-none" do %>
+  <div id="<%= dom_id project_feature %>" class="card mb-3 hover-shadow">
+    <div class="card-body">
+      <p class="mb-2">
+        <strong>Name:</strong>
+        <%= project_feature.name %>
+      </p>
 
-  <p>
-    <strong>Duration:</strong>
-    <%= project_feature.duration %>
-  </p>
+      <p class="mb-2">
+        <strong>Duration:</strong>
+        <%= project_feature.duration %> days
+      </p>
 
-  <p>
-    <strong>Project:</strong>
-    <%= project_feature.project_id %>
-  </p>
-
-</div>
+      <p class="mb-0">
+        <strong>Project:</strong>
+        <%= project_feature.project.name %>
+      </p>
+    </div>
+  </div>
+<% end %>

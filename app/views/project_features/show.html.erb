@@ -1,10 +1,80 @@
-<h1><%= @project_feature.name %></h1>
-<p><strong>Duration:</strong> <%= @project_feature.duration %> days</p>
-<p><strong>Contributors:</strong></p>
-<ul>
-  <% @project_feature.contributors.each do |user| %>
-    <li><%= user.name %> - <%= user.job %></li>
-  <% end %>
-</ul>
-<%= link_to 'Edit', edit_project_project_feature_path(@project, @project_feature) %> |
-<%= link_to 'Back to Project', project_path(@project) %>
+<div class="container mt-4">
+  <div class="card">
+    <div class="card-header">
+      <h1 class="mb-0"><%= @project_feature.name %></h1>
+    </div>
+    <div class="card-body">
+      <div class="mb-4">
+        <h5 class="card-title">Duration</h5>
+        <p class="card-text"><%= @project_feature.duration %> days</p>
+      </div>
+
+      <div class="mb-4">
+        <h5 class="card-title">Status</h5>
+        <p class="card-text">
+          <span class="badge <%= status_badge_class(@project_feature.status) %> fs-6">
+            <%= @project_feature.status.humanize %>
+          </span>
+        </p>
+      </div>
+
+      <div class="mb-4">
+        <h5 class="card-title">Contributors</h5>
+        <div class="row">
+          <div class="col-md-6">
+            <h6 class="text-muted">Responsible</h6>
+            <ul class="list-unstyled">
+              <% @project_feature.feature_assignments.where(role: 'responsible').each do |assignment| %>
+                <li><%= assignment.user.name %> - <%= assignment.user.job %></li>
+              <% end %>
+            </ul>
+          </div>
+          <div class="col-md-6">
+            <h6 class="text-muted">Accountable</h6>
+            <ul class="list-unstyled">
+              <% @project_feature.feature_assignments.where(role: 'accountable').each do |assignment| %>
+                <li><%= assignment.user.name %> - <%= assignment.user.job %></li>
+              <% end %>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <%= link_to edit_project_project_feature_path(@project, @project_feature), class: 'btn btn-primary me-2' do %>
+          <i class="bi bi-pencil"></i> Edit Feature
+        <% end %>
+        <%= link_to project_path(@project), class: 'btn btn-secondary me-2' do %>
+          <i class="bi bi-arrow-left"></i> Back to Project
+        <% end %>
+        <!-- Delete button -->
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal_<%= @project_feature.id %>">
+          <i class="bi bi-trash"></i> Delete Feature
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal_<%= @project_feature.id %>" tabindex="-1" aria-labelledby="deleteModalLabel_<%= @project_feature.id %>" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteModalLabel_<%= @project_feature.id %>">Delete Feature</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete "<%= @project_feature.name %>"? This action cannot be undone.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <%= simple_form_for [@project, @project_feature], 
+                           method: :delete,
+                           html: { data: { turbo: true } } do |f| %>
+          <%= f.button :submit, "Delete", class: "btn btn-danger" %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
