@@ -7,7 +7,7 @@ class ProjectsController < ApplicationController
   end
 
   def show
-    @project_features = @project.project_features.order(:created_at)
+    @project_features = @project.project_features.includes(:responsible_assignments, responsible_contributors: :user)
     @contributors = @project.contributors
   end
 

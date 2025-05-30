@@ -13,10 +13,25 @@
 <!-- Features Section -->
 <h2 class="mt-4">Features</h2>
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <div>
+  <div class="d-flex gap-2">
     <%= link_to 'New Feature', new_project_project_feature_path(@project), class: "btn btn-primary" %>
+    
+    <!-- Order By Dropdown -->
+    <div class="dropdown">
+      <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="orderByDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+        Order by: <%= params[:order_by]&.humanize || 'Created date' %>
+      </button>
+      <ul class="dropdown-menu" aria-labelledby="orderByDropdown">
+        <%= link_to 'Name', project_path(@project, order_by: 'name', statuses: params[:statuses]), class: "dropdown-item#{' active' if params[:order_by] == 'name'}" %>
+        <%= link_to 'Created date', project_path(@project, order_by: 'created_date', statuses: params[:statuses]), class: "dropdown-item#{' active' if params[:order_by] == 'created_date' || params[:order_by].nil?}" %>
+        <%= link_to 'Status', project_path(@project, order_by: 'status', statuses: params[:statuses]), class: "dropdown-item#{' active' if params[:order_by] == 'status'}" %>
+        <%= link_to 'Responsible', project_path(@project, order_by: 'responsible', statuses: params[:statuses]), class: "dropdown-item#{' active' if params[:order_by] == 'responsible'}" %>
+      </ul>
+    </div>
   </div>
+
   <%= form_tag project_path(@project), method: :get, class: 'ms-3' do %>
+    <%= hidden_field_tag :order_by, params[:order_by] %>
     <div class="btn-group" role="group">
       <% statuses = {
         'not_started' => ['Not Started', 'warning'],
@@ -48,40 +63,41 @@
               else
                 @project.project_features
               end %>
-<% features.order(:status).group_by(&:status).each do |status, grouped_features| %>
-  <div class="mb-4">
-    <% status_label = case status
-                     when 'not_started' then 'Not Started'
-                     when 'work_in_progress' then 'On Going'
-                     when 'job_done' then 'Done'
+
+<% features = case params[:order_by]
+              when 'name'
+                features.order(:name)
+              when 'status'
+                features.order(:status)
+              when 'responsible'
+                features.includes(:responsible_assignments, responsible_contributors: :user)
+                       .order('users.name')
+              else # created_date or default
+                features.order(created_at: :desc)
+              end %>
+
+<div class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-2">
+  <% features.each do |feature| %>
+    <% status_class = case feature.status
+                     when 'not_started' then 'bg-warning bg-opacity-25'
+                     when 'work_in_progress' then 'bg-primary bg-opacity-25'
+                     when 'job_done' then 'bg-success bg-opacity-25'
+                     else 'bg-light'
                      end %>
-    <small class="text-muted d-inline-block mb-2">
-      <%= status_label %> (<%= grouped_features.count %>)
-    </small>
-    <div class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-2">
-      <% grouped_features.sort_by(&:created_at).reverse_each do |feature| %>
-        <% status_class = case feature.status
-                         when 'not_started' then 'bg-warning bg-opacity-25'
-                         when 'work_in_progress' then 'bg-primary bg-opacity-25'
-                         when 'job_done' then 'bg-success bg-opacity-25'
-                         else 'bg-light'
-                         end %>
-        <div class="col">
-          <%= link_to project_project_feature_path(@project, feature), class: "text-decoration-none" do %>
-            <div class="card h-100 <%= status_class %> hover-shadow">
-              <div class="card-body p-2">
-                <h6 class="card-title mb-1 text-truncate"><%= feature.name %></h6>
-                <span class="badge <%= status_badge_class(feature.status) %>">
-                  <%= feature.status.humanize %>
-                </span>
-              </div>
-            </div>
-          <% end %>
+    <div class="col">
+      <%= link_to project_project_feature_path(@project, feature), class: "text-decoration-none" do %>
+        <div class="card h-100 <%= status_class %> hover-shadow">
+          <div class="card-body p-2">
+            <h6 class="card-title mb-1 text-truncate"><%= feature.name %></h6>
+            <span class="badge <%= status_badge_class(feature.status) %>">
+              <%= feature.status.humanize %>
+            </span>
+          </div>
         </div>
       <% end %>
     </div>
-  </div>
-<% end %>
+  <% end %>
+</div>
 <!-- Timeline Section -->
 <h3 class="mt-4">Timeline View</h3>
 <%= render 'timeline_view', project: @project %>

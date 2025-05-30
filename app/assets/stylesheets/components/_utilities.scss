@@ -1,0 +1,8 @@
+.bg-purple {
+  background-color: $purple !important;
+}
+
+// Opacity variants
+.bg-purple.bg-opacity-25 {
+  background-color: rgba($purple, 0.25) !important;
+} 
