@@ -1,4 +1,7 @@
-<div class="timeline-container" data-controller="timeline">
+<div class="timeline-container" data-controller="timeline"
+  data-day-start="<%= Date.today %>"
+  data-month-start="<%= Date.today.beginning_of_month %>"
+  data-year-start="<%= Date.today.beginning_of_year %>">
   <div class="timeline-header">
     <h4 class="text-center mb-3"><%= project.name %> Timeline</h4>
     
@@ -39,12 +42,18 @@
     <div class="timeline-content">
       <!-- Time headers -->
       <div class="time-headers" data-timeline-target="timeHeaders">
-        <% 
-          start_date = project.start_date
+        <%
+          zoom = params[:zoom] || 'day'
+          case zoom
+          when 'year'
+            start_date = Date.today.beginning_of_year
+          when 'month'
+            start_date = Date.today.beginning_of_month
+          else
+            start_date = Date.today
+          end
           end_date = project.end_date || (start_date + 5.years)
           total_days = (end_date - start_date).to_i
-          
-          # Create arrays of unique months and years
           months = (start_date..end_date).map { |d| d.beginning_of_month }.uniq
           years = (start_date.year..end_date.year).map { |y| Date.new(y, 1, 1) }
         %>
@@ -75,7 +84,7 @@
           rows = []
           features.sort_by { |f| f.start_date || start_date }.each do |feature|
             feature_start = feature.start_date || start_date
-            feature_end = feature.end_date || end_date
+            feature_end = feature.end_date || (feature.start_date + feature.duration.days if feature.start_date && feature.duration)
             
             # Find first row where this feature can fit
             row_index = rows.find_index do |row|
@@ -108,7 +117,7 @@
             <% sorted_features.each do |feature| %>
               <% 
                 feature_start = feature.start_date || start_date
-                feature_end = feature.end_date || end_date
+                feature_end = feature.end_date || (feature.start_date + feature.duration.days if feature.start_date && feature.duration)
                 
                 # Calculate exact pixel position based on days
                 days_from_start = (feature_start - start_date).to_i
@@ -118,19 +127,22 @@
                 left_px = days_from_start * 60
                 width_px = [duration * 60, 60].max # Minimum width of 60px
               %>
-              <%= link_to project_project_feature_path(project, feature), 
-                  class: "feature-bar #{feature.status}",
-                  style: "left: #{left_px}px; width: #{width_px}px; top: #{10 + (row_index * 50)}px;",
-                  data: {
-                    original_left: left_px,
-                    original_width: width_px,
-                    start_date: feature_start,
-                    end_date: feature_end,
-                    duration: duration
-                  },
-                  title: "#{feature.name} (#{feature.duration} days)" do %>
+              <div 
+                class="feature-bar feature-card <%= feature.status %>"
+                style="left: <%= left_px %>px; width: <%= width_px %>px; top: <%= 10 + (row_index * 50) %>px;"
+                data-x="<%= left_px %>"
+                data-y="<%= 10 + (row_index * 50) %>"
+                data-original-left="<%= left_px %>"
+                data-original-width="<%= width_px %>"
+                data-start-date="<%= feature_start %>"
+                data-end-date="<%= feature_end %>"
+                data-duration="<%= duration %>"
+                data-project-id="<%= project.id %>"
+                data-id="<%= feature.id %>"
+                title="<%= feature.name %> (<%= feature.duration %> days)"
+              >
                 <%= feature.name %>
-              <% end %>
+              </div>
             <% end %>
           <% end %>
         </div>

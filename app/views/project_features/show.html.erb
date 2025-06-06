@@ -8,9 +8,10 @@
         <h5 class="card-title">Duration</h5>
         <% if @project_feature.duration %>
           <p class="card-text"><%= @project_feature.duration %> days</p>
+          <% calculated_end_date = @project_feature.end_date || (@project_feature.start_date + @project_feature.duration.days if @project_feature.start_date && @project_feature.duration) %>
           <p class="card-text text-muted">
-            From <%= @project_feature.start_date.strftime('%B %d, %Y') %> 
-            to <%= @project_feature.end_date.strftime('%B %d, %Y') %>
+            From <%= @project_feature.start_date&.strftime('%B %d, %Y') || 'No start date' %> 
+            to <%= calculated_end_date&.strftime('%B %d, %Y') || 'No end date' %>
           </p>
         <% else %>
           <p class="card-text text-muted">No duration set</p>

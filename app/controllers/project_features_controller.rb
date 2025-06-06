@@ -49,6 +49,7 @@ class ProjectFeaturesController < ApplicationController
   end
 
   def update_dates
+    Rails.logger.info "PARAMS: #{params.inspect}"
     if @project_feature.update(feature_date_params)
       render json: {
         status: 'success',
@@ -60,6 +61,7 @@ class ProjectFeaturesController < ApplicationController
         }
       }
     else
+      Rails.logger.info "ERRORS: #{@project_feature.errors.full_messages}"
       render json: { status: 'error', errors: @project_feature.errors.full_messages }, status: :unprocessable_entity
     end
   end
