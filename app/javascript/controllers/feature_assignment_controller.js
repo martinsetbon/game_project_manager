@@ -8,13 +8,16 @@ export default class extends Controller {
     console.log("Stimulus controller connected")
   }
 
-  checkDuplicate(event) {
-    const responsibleVal = this.responsibleSelectTarget.value
-    const accountableVal = this.accountableSelectTarget.value
+  checkDuplicate() {
+    const responsibleId = this.responsibleSelectTarget.value
+    const accountableId = this.accountableSelectTarget.value
 
-    if (responsibleVal && accountableVal && responsibleVal === accountableVal) {
-      // Trigger the modal popup
+    if (responsibleId && accountableId && responsibleId === accountableId) {
       this.popupButtonTarget.click()
     }
+  }
+
+  handleSubmission(event) {
+    // Handle any post-submission logic if needed
   }
 }

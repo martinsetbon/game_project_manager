@@ -1,0 +1,208 @@
+.timeline-container {
+  margin: 20px 0;
+  overflow: hidden;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.timeline-grid {
+  display: flex;
+  min-height: 400px;
+  width: 100%;
+}
+
+// Zoom Controls
+.timeline-controls {
+  .btn-group {
+    .btn {
+      &.active {
+        background-color: #e9ecef;
+        border-color: #dee2e6;
+      }
+    }
+  }
+}
+
+.department-labels {
+  min-width: 200px;
+  background: #f8f9fa;
+  border-right: 1px solid #e9ecef;
+  flex-shrink: 0;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+.department-label {
+  padding: 0 20px;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 15px;
+  font-weight: 500;
+  color: #495057;
+  border-bottom: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+  background: #f8f9fa;
+
+  &.header-cell {
+    height: 60px !important;
+    background: #f1f3f5;
+    font-weight: bold;
+    align-items: center;
+  }
+
+  &.folded {
+    height: 40px !important;
+    padding-top: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .toggle-section {
+    color: #6c757d;
+    transition: transform 0.3s ease;
+
+    &.collapsed {
+      transform: rotate(180deg);
+    }
+  }
+}
+
+.timeline-content {
+  flex-grow: 1;
+  overflow-x: auto;
+  position: relative;
+  min-width: 0;
+  background: white;
+}
+
+.time-headers {
+  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+  min-width: max-content;
+}
+
+.time-header {
+  padding: 10px 5px;
+  text-align: center;
+  font-size: 0.85em;
+  color: #6c757d;
+  border-right: 1px solid #e9ecef;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+
+  &.weekend {
+    background: #f1f3f5;
+  }
+
+  .day-label, .month-label, .year-label {
+    transition: opacity 0.3s ease;
+  }
+}
+
+.department-row {
+  border-bottom: 1px solid #e9ecef;
+  position: relative;
+  transition: all 0.3s ease;
+  min-height: 60px;
+  overflow: hidden;
+  min-width: max-content;
+
+  &.folded {
+    height: 40px !important;
+    min-height: 40px !important;
+    border-bottom: 1px solid #e9ecef;
+    opacity: 0.8;
+
+    .feature-bar {
+      height: 30px !important;
+      font-size: 0.75em;
+      top: 5px !important;
+      opacity: 0;
+      pointer-events: none;
+
+      &:first-child {
+        opacity: 1;
+        pointer-events: auto;
+      }
+    }
+  }
+}
+
+.feature-bar {
+  position: absolute;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  color: #212529;
+  text-decoration: none;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1;
+    text-decoration: none;
+    color: #212529;
+  }
+
+  &.not_started {
+    background-color: rgba($warning, 0.25);
+    border: 1px solid $warning;
+  }
+
+  &.work_in_progress {
+    background-color: rgba($primary, 0.25);
+    border: 1px solid $primary;
+  }
+
+  &.job_done {
+    background-color: rgba($success, 0.25);
+    border: 1px solid $success;
+  }
+}
+
+// Zoom levels
+.timeline-grid {
+  &.zoom-day {
+    .time-header {
+      flex: 0 0 60px;
+      .day-label { display: block; }
+      .month-label, .year-label { display: none; }
+    }
+  }
+
+  &.zoom-month {
+    .time-header {
+      flex: 0 0 180px;
+      .month-label { display: block; }
+      .day-label, .year-label { display: none; }
+    }
+  }
+
+  &.zoom-year {
+    .time-header {
+      flex: 0 0 300px;
+      .year-label { display: block; }
+      .day-label, .month-label { display: none; }
+    }
+  }
+} 

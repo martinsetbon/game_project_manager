@@ -1,8 +1,140 @@
-<div class="timeline-container">
-  <% project.project_features.each do |feature| %>
-    <div class="timeline-item">
-      <strong><%= feature.name %></strong>
-      <span> <%= feature.duration %></span>
+<div class="timeline-container" data-controller="timeline">
+  <div class="timeline-header">
+    <h4 class="text-center mb-3"><%= project.name %> Timeline</h4>
+    
+    <!-- Timeline Controls -->
+    <div class="timeline-controls mb-3 d-flex justify-content-center gap-3">
+      <div class="zoom-controls btn-group">
+        <button class="btn btn-outline-secondary btn-sm" data-action="timeline#zoom" data-zoom="day">Day View</button>
+        <button class="btn btn-outline-secondary btn-sm" data-action="timeline#zoom" data-zoom="month">Month View</button>
+        <button class="btn btn-outline-secondary btn-sm" data-action="timeline#zoom" data-zoom="year">Year View</button>
+      </div>
     </div>
-  <% end %>
+  </div>
+  
+  <div class="timeline-grid" data-timeline-target="grid">
+    <!-- Department labels (Y-axis) -->
+    <div class="department-labels">
+      <div class="department-label header-cell">Departments</div>
+      <% ProjectFeature::DEPARTMENTS.each do |department| %>
+        <% 
+          features = project.project_features.where(department: department)
+          rows_needed = calculate_required_rows(features, project.start_date, project.end_date || (project.start_date + 5.years))
+          section_height = [60, (rows_needed * 50) + 20].max # Base height 60px, 50px per feature, 20px padding
+        %>
+        <div class="department-label" data-department="<%= department %>" style="height: <%= section_height %>px">
+          <div class="d-flex justify-content-between w-100 align-items-center">
+            <span><%= department %></span>
+            <button class="btn btn-link btn-sm p-0 toggle-section" 
+                    data-action="timeline#toggleSection" 
+                    data-department="<%= department %>">
+              <i class="fas fa-chevron-up"></i>
+            </button>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Time labels and grid (X-axis) -->
+    <div class="timeline-content">
+      <!-- Time headers -->
+      <div class="time-headers" data-timeline-target="timeHeaders">
+        <% 
+          start_date = project.start_date
+          end_date = project.end_date || (start_date + 5.years)
+          total_days = (end_date - start_date).to_i
+          
+          # Create arrays of unique months and years
+          months = (start_date..end_date).map { |d| d.beginning_of_month }.uniq
+          years = (start_date.year..end_date.year).map { |y| Date.new(y, 1, 1) }
+        %>
+        
+        <% # Daily headers %>
+        <% (start_date..end_date).each do |date| %>
+          <div class="time-header <%= 'weekend' if date.saturday? || date.sunday? %>" 
+               data-timeline-target="timeHeader"
+               data-date="<%= date.to_s %>"
+               data-day="<%= date.day %>"
+               data-month="<%= date.month %>"
+               data-year="<%= date.year %>"
+               data-is-month-start="<%= date.day == 1 %>"
+               data-is-year-start="<%= date.day == 1 && date.month == 1 %>">
+            <span class="day-label"><%= date.strftime('%d/%m') %></span>
+            <span class="month-label" style="display: none;"><%= date.strftime('%B') %></span>
+            <span class="year-label" style="display: none;"><%= date.year %></span>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Department rows with features -->
+      <% ProjectFeature::DEPARTMENTS.each do |department| %>
+        <% 
+          features = project.project_features.where(department: department)
+          
+          # Sort features by start date and group them into rows to avoid overlap
+          rows = []
+          features.sort_by { |f| f.start_date || start_date }.each do |feature|
+            feature_start = feature.start_date || start_date
+            feature_end = feature.end_date || end_date
+            
+            # Find first row where this feature can fit
+            row_index = rows.find_index do |row|
+              row.none? do |existing|
+                existing_start = existing.start_date || start_date
+                existing_end = existing.end_date || end_date
+                (feature_start <= existing_end) && (feature_end >= existing_start)
+              end
+            end
+            
+            # If no suitable row found, create a new one
+            if row_index.nil?
+              rows << [feature]
+            else
+              rows[row_index] << feature
+            end
+          end
+          
+          section_height = [60, (rows.length * 50) + 20].max # Match the label height
+        %>
+        <div class="department-row" 
+             data-timeline-target="department"
+             data-department="<%= department %>" 
+             style="height: <%= section_height %>px">
+          <% rows.each_with_index do |row_features, row_index| %>
+            <% 
+              # Sort features by start date to ensure earliest appears first
+              sorted_features = row_features.sort_by { |f| f.start_date || start_date }
+            %>
+            <% sorted_features.each do |feature| %>
+              <% 
+                feature_start = feature.start_date || start_date
+                feature_end = feature.end_date || end_date
+                
+                # Calculate exact pixel position based on days
+                days_from_start = (feature_start - start_date).to_i
+                duration = (feature_end - feature_start).to_i
+                
+                # Each day is 60px wide (from CSS)
+                left_px = days_from_start * 60
+                width_px = [duration * 60, 60].max # Minimum width of 60px
+              %>
+              <%= link_to project_project_feature_path(project, feature), 
+                  class: "feature-bar #{feature.status}",
+                  style: "left: #{left_px}px; width: #{width_px}px; top: #{10 + (row_index * 50)}px;",
+                  data: {
+                    original_left: left_px,
+                    original_width: width_px,
+                    start_date: feature_start,
+                    end_date: feature_end,
+                    duration: duration
+                  },
+                  title: "#{feature.name} (#{feature.duration} days)" do %>
+                <%= feature.name %>
+              <% end %>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
 </div>

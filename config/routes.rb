@@ -10,6 +10,7 @@ Rails.application.routes.draw do
     resources :project_features do
       member do
         patch :update_status
+        patch :update_dates
       end
     end
 

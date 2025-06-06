@@ -6,7 +6,15 @@
     <div class="card-body">
       <div class="mb-4">
         <h5 class="card-title">Duration</h5>
-        <p class="card-text"><%= @project_feature.duration %> days</p>
+        <% if @project_feature.duration %>
+          <p class="card-text"><%= @project_feature.duration %> days</p>
+          <p class="card-text text-muted">
+            From <%= @project_feature.start_date.strftime('%B %d, %Y') %> 
+            to <%= @project_feature.end_date.strftime('%B %d, %Y') %>
+          </p>
+        <% else %>
+          <p class="card-text text-muted">No duration set</p>
+        <% end %>
       </div>
 
       <div class="mb-4">

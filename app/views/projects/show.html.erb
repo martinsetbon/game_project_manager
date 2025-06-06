@@ -70,7 +70,8 @@
               when 'status'
                 features.order(:status)
               when 'responsible'
-                features.includes(:responsible_assignments, responsible_contributors: :user)
+                features.joins(:responsible_contributors)
+                       .includes(:responsible_assignments, :responsible_contributors)
                        .order('users.name')
               else # created_date or default
                 features.order(created_at: :desc)

@@ -1,29 +1,37 @@
 <%= simple_form_for([@project, @project_feature], data: {
-  turbo_frame: "project_features",
   controller: "feature-assignment",
   action: "turbo:submit-end->feature-assignment#handleSubmission"
 }) do |f| %>
   <div class="form-group mb-3">
-    <%= f.input :name, label: "Feature Name" %>
+    <%= f.input :name, label: "Feature Name", required: true %>
   </div>
   <div class="form-group mb-3">
-    <%= f.input :duration, label: "Feature Duration (days)" %>
+    <%= f.input :duration, label: "Feature Duration (days)", required: true %>
+  </div>
+  <div class="form-group mb-3">
+    <%= f.input :department,
+                as: :select,
+                collection: ProjectFeature::DEPARTMENTS,
+                label: "Department",
+                required: true,
+                include_blank: "Select a department" %>
   </div>
   <div class="form-group mb-3">
     <%= f.input :status,
                 as: :select,
                 collection: [['Not Started', 'not_started'], ['On Going', 'work_in_progress'], ['Done', 'job_done']],
                 label: "Feature Status",
-                include_blank: false,
-                selected: @project_feature.status || 'not_started' %>
+                include_blank: false %>
   </div>
   <div class="form-group mb-3">
-    <%= f.input :responsible_contributor_id,
+    <%= f.input :start_date, as: :date, html5: true, required: false %>
+  </div>
+  <div class="form-group mb-3">
+    <%= f.input :responsible_user_id,
                 as: :select,
                 collection: @project.project_contributors.includes(:user).map { |pc| [pc.user.name, pc.user.id] },
                 label: "Assign Responsible Team Member (Optional)",
-                include_blank: "No assignment",
-                selected: @project_feature.responsible_contributors.first&.id,
+                include_blank: "Select a team member",
                 input_html: {
                   data: {
                     feature_assignment_target: "responsibleSelect",
@@ -32,12 +40,11 @@
                 } %>
   </div>
   <div class="form-group mb-3">
-    <%= f.input :accountable_contributor_id,
+    <%= f.input :accountable_user_id,
                 as: :select,
                 collection: @project.project_contributors.includes(:user).map { |pc| [pc.user.name, pc.user.id] },
                 label: "Assign Accountable Team Member (Optional)",
-                include_blank: "No assignment",
-                selected: @project_feature.accountable_contributors.first&.id,
+                include_blank: "Select a team member",
                 input_html: {
                   data: {
                     feature_assignment_target: "accountableSelect",
@@ -45,24 +52,26 @@
                   }
                 } %>
   </div>
+
   <!-- Button trigger modal -->
   <button type="button"
-        class="btn btn-primary d-none"
-        data-bs-toggle="modal"
-        data-bs-target="#staticBackdrop"
-        data-feature-assignment-target="popupButton">
+          class="btn btn-primary d-none"
+          data-bs-toggle="modal"
+          data-bs-target="#staticBackdrop"
+          data-feature-assignment-target="popupButton">
     Launch static backdrop modal
   </button>
+
   <!-- Modal -->
   <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h1 class="modal-title fs-5" id="staticBackdropLabel">Same name</h1>
+          <h1 class="modal-title fs-5" id="staticBackdropLabel">Warning</h1>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          "Be careful, the same person is assigned as "responsible' and "accountable", this is not the usuall way to do it."
+          Be careful, you're assigning the same person as responsible and accountable. This is not the usual way to do it.
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Understood</button>
@@ -70,12 +79,9 @@
       </div>
     </div>
   </div>
+
   <div class="form-group">
-    <%= f.button :submit, "Save Feature",
-                 class: "btn btn-primary",
-                 data: {
-                   feature_assignment_target: "submitButton",
-                   disable_with: "Saving..."
-                 } %>
+    <%= f.button :submit, class: "btn btn-primary", data: { feature_assignment_target: "submitButton" } %>
+    <%= link_to 'Cancel', project_path(@project), class: "btn btn-secondary" %>
   </div>
 <% end %>
