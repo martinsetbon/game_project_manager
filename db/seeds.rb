@@ -172,8 +172,8 @@ until ProjectFeature.count == 30
   
   # Calculate duration based on department
   duration_range = department_durations[department]
-  feature_duration = rand(duration_range).days
-  feature_end = [feature_start + feature_duration, project.end_date || (project.start_date + 6.months)].min
+  feature_duration = rand(duration_range) # integer number of days
+  feature_end = [feature_start + feature_duration.days, project.end_date || (project.start_date + 6.months)].min
   
   # Create the feature
   feature = ProjectFeature.create!(
@@ -182,6 +182,7 @@ until ProjectFeature.count == 30
     department: department,
     status: %w[not_started work_in_progress job_done].sample,
     start_date: feature_start,
+    duration: feature_duration,
     end_date: feature_end
   )
   
@@ -197,19 +198,6 @@ until ProjectFeature.count == 30
   remaining_users = department_users.where.not(id: responsible_user.id)
   accountable_user = remaining_users.sample || responsible_user
   
-  # Create assignments
-  FeatureAssignment.create!(
-    project_feature: feature,
-    user: responsible_user,
-    role: 'responsible'
-  )
-  
-  FeatureAssignment.create!(
-    project_feature: feature,
-    user: accountable_user,
-    role: 'accountable'
-  )
-  
   puts "Created feature: #{feature.name} (#{feature.department})"
   puts "  → Responsible: #{responsible_user.name}"
   puts "  → Accountable: #{accountable_user.name}"
@@ -217,3 +205,42 @@ end
 
 puts "\nSeeding completed successfully!"
 puts "✅ Created #{ProjectFeature.count} features with departments and assignments!"
+
+# Now create assignments for features that still exist
+puts "\nCreating assignments for valid features..."
+FeatureAssignment.skip_callback(:create, :after, :adjust_dates_if_responsible)
+FeatureAssignment.skip_callback(:destroy, :after, :adjust_dates_if_responsible)
+ProjectFeature.all.each do |feature|
+  department = feature.department
+  job_title = DEPARTMENT_TO_JOB[department]
+  department_users = User.where(job: job_title)
+  available_users = department_users.where(available: true)
+  responsible_user = available_users.sample || department_users.sample
+  remaining_users = department_users.where.not(id: responsible_user.id)
+  accountable_user = remaining_users.sample || responsible_user
+  FeatureAssignment.create!(
+    project_feature: feature,
+    user: responsible_user,
+    role: 'responsible'
+  )
+  FeatureAssignment.create!(
+    project_feature: feature,
+    user: accountable_user,
+    role: 'accountable'
+  )
+  puts "Assigned feature: #{feature.name} (#{feature.department})"
+  puts "  → Responsible: #{responsible_user.name}"
+  puts "  → Accountable: #{accountable_user.name}"
+end
+FeatureAssignment.set_callback(:create, :after, :adjust_dates_if_responsible)
+FeatureAssignment.set_callback(:destroy, :after, :adjust_dates_if_responsible)
+puts "✅ Assignments created for all valid features!"
+
+# Now run overlap adjustment logic after all assignments are created
+puts "\nAligning features for responsible contributors to prevent overlaps..."
+Project.all.each do |project|
+  project.project_features.each do |feature|
+    feature.prevent_overlaps_for_responsible_contributors
+  end
+end
+puts "✅ All responsible contributors' features are now sequential with no overlaps!"

@@ -1,0 +1,154 @@
+// Media Objects component styling
+.media {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.media-body {
+  flex: 1;
+  min-width: 0; // Prevent flex item from overflowing
+}
+
+// Media object variants
+.media-right {
+  padding-left: 1rem;
+  order: 2;
+}
+
+.media-left {
+  padding-right: 1rem;
+  order: 1;
+}
+
+.media-center {
+  align-items: center;
+}
+
+.media-bottom {
+  align-items: flex-end;
+}
+
+// Media object with border
+.media-bordered {
+  padding: 1rem;
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+}
+
+// Media object with background
+.media-bg {
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 0.25rem;
+}
+
+// Media object with shadow
+.media-shadow {
+  padding: 1rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border-radius: 0.25rem;
+}
+
+// Media object with hover effect
+.media-hover {
+  transition: transform 0.2s ease-in-out;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+// Media object with image
+.media-img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 0.25rem;
+
+  &.media-img-sm {
+    width: 48px;
+    height: 48px;
+  }
+
+  &.media-img-lg {
+    width: 96px;
+    height: 96px;
+  }
+
+  &.media-img-circle {
+    border-radius: 50%;
+  }
+}
+
+// Media object with icon
+.media-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background-color: #e9ecef;
+  border-radius: 0.25rem;
+  color: #6c757d;
+  font-size: 1.5rem;
+
+  &.media-icon-sm {
+    width: 48px;
+    height: 48px;
+    font-size: 1.25rem;
+  }
+
+  &.media-icon-lg {
+    width: 96px;
+    height: 96px;
+    font-size: 2rem;
+  }
+
+  &.media-icon-circle {
+    border-radius: 50%;
+  }
+}
+
+// Media object with nested media
+.media-nested {
+  margin-top: 1rem;
+  padding-left: 1rem;
+  border-left: 2px solid #dee2e6;
+}
+
+// Media object with responsive behavior
+@media (max-width: 576px) {
+  .media {
+    flex-direction: column;
+  }
+
+  .media-left,
+  .media-right {
+    padding: 0 0 1rem 0;
+  }
+
+  .media-right {
+    order: 1;
+  }
+
+  .media-left {
+    order: 2;
+  }
+}
+
+// Media object with animation
+.media-animated {
+  animation: media-fade-in 0.3s ease-in-out;
+}
+
+@keyframes media-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+} 

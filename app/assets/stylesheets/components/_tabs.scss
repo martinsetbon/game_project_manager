@@ -1,0 +1,40 @@
+// Tabs component styling
+.nav-tabs {
+  border-bottom: 1px solid #dee2e6;
+  margin-bottom: 1rem;
+
+  .nav-item {
+    margin-bottom: -1px;
+  }
+
+  .nav-link {
+    border: 1px solid transparent;
+    border-top-left-radius: 0.25rem;
+    border-top-right-radius: 0.25rem;
+    color: #495057;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+
+    &:hover {
+      border-color: #e9ecef #e9ecef #dee2e6;
+    }
+
+    &.active {
+      color: #495057;
+      background-color: #fff;
+      border-color: #dee2e6 #dee2e6 #fff;
+    }
+  }
+}
+
+.tab-content {
+  padding: 1rem 0;
+
+  .tab-pane {
+    display: none;
+
+    &.active {
+      display: block;
+    }
+  }
+} 

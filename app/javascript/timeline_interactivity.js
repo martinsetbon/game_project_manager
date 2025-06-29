@@ -9,6 +9,71 @@ document.addEventListener('DOMContentLoaded', function() {
         card.setAttribute('data-x', x);
     });
 
+    // Add warning icon if overlapping
+    function updateOverlapWarnings() {
+        document.querySelectorAll('.feature-card').forEach(card => {
+            // Remove existing warning icon
+            const existing = card.querySelector('.overlap-warning');
+            if (existing) existing.remove();
+            // Remove any global popup for this card
+            const globalPopup = document.querySelector('.overlap-popup[data-feature-id="' + card.dataset.id + '"]');
+            if (globalPopup) globalPopup.remove();
+            // Get the current left position from transform if present
+            let x = 0;
+            const transform = card.style.transform;
+            if (transform && transform.startsWith('translate(')) {
+                const match = transform.match(/translate\(([-\d.]+)px/);
+                if (match) x = parseFloat(match[1]);
+            } else {
+                x = parseFloat(card.getAttribute('data-x')) || 0;
+            }
+            // Check for overlap
+            if (isOverlapping(card, x)) {
+                const icon = document.createElement('span');
+                icon.className = 'overlap-warning';
+                icon.innerHTML = '❗';
+                icon.title = 'Feature overlaps with another feature';
+                icon.style.color = 'red';
+                icon.style.position = 'absolute';
+                icon.style.right = '4px';
+                icon.style.top = '4px';
+                icon.style.cursor = 'pointer';
+                icon.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    showOverlapPopup(card);
+                });
+                card.appendChild(icon);
+            }
+        });
+    }
+
+    function showOverlapPopup(card) {
+        // Remove any existing global popup for this card
+        const existing = document.querySelector('.overlap-popup[data-feature-id="' + card.dataset.id + '"]');
+        if (existing) existing.remove();
+        // Create popup
+        const popup = document.createElement('div');
+        popup.className = 'overlap-popup';
+        popup.setAttribute('data-feature-id', card.dataset.id);
+        popup.innerHTML = `
+          <div style="background: #fff3f3; border: 1px solid #f5c2c7; color: #842029; padding: 10px; border-radius: 4px; min-width: 220px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+            <div><strong>Warning</strong></div>
+            <div>Warning, your features start and end date are overlapping</div>
+            <button class="close-overlap-popup" style="margin-top: 8px; float: right;">OK</button>
+          </div>
+        `;
+        document.body.appendChild(popup);
+        // Position the popup near the card
+        const rect = card.getBoundingClientRect();
+        popup.style.position = 'absolute';
+        popup.style.zIndex = 9999;
+        popup.style.left = (window.scrollX + rect.right + 10) + 'px';
+        popup.style.top = (window.scrollY + rect.top) + 'px';
+        popup.querySelector('.close-overlap-popup').addEventListener('click', function() {
+            popup.remove();
+        });
+    }
+
     interact('.feature-card')
         .draggable({
             axis: 'x',
@@ -19,6 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Move fluidly
                     target.style.transform = `translate(${x}px, 0px)`;
                     target.setAttribute('data-x', x);
+                    updateOverlapWarnings(); // Update warnings live while dragging
                 },
                 end(event) {
                     const target = event.target;
@@ -36,6 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         start_date: newStartDate.toISOString().split('T')[0],
                         duration: duration
                     }, target);
+                    updateOverlapWarnings();
                 }
             }
         })
@@ -57,6 +124,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     target.style.transform = `translate(${x}px, 0px)`;
                     target.setAttribute('data-x', x);
+                    updateOverlapWarnings(); // Update warnings live while resizing
                 },
                 end(event) {
                     const target = event.target;
@@ -68,6 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         start_date: newStartDate.toISOString().split('T')[0],
                         duration: duration
                     }, target);
+                    updateOverlapWarnings();
                 }
             },
             modifiers: [
@@ -80,6 +149,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
             ]
         });
+
+    // Initial warning check
+    updateOverlapWarnings();
 });
 
 function updateFeature(id, data, target) {
@@ -102,14 +174,21 @@ function updateFeature(id, data, target) {
 }
 
 function isOverlapping(target, newX) {
-    const features = document.querySelectorAll('.feature-card');
+    const features = Array.from(document.querySelectorAll('.feature-card'));
     const targetWidth = parseFloat(target.style.width);
-
+    const targetRow = target.closest('.contributor-row');
     for (let feature of features) {
-        if (feature !== target) {
-            const featureX = parseFloat(feature.getAttribute('data-x'));
+        if (feature !== target && feature.closest('.contributor-row') === targetRow) {
+            // Get the current left position of the other feature
+            let featureX = 0;
+            const transform = feature.style.transform;
+            if (transform && transform.startsWith('translate(')) {
+                const match = transform.match(/translate\(([-\d.]+)px/);
+                if (match) featureX = parseFloat(match[1]);
+            } else {
+                featureX = parseFloat(feature.getAttribute('data-x')) || 0;
+            }
             const featureWidth = parseFloat(feature.style.width);
-
             // Check if the target's new position overlaps with any other feature
             if (newX < featureX + featureWidth && newX + targetWidth > featureX) {
                 return true; // Overlapping

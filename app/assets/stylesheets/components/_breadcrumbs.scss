@@ -1,0 +1,40 @@
+// Breadcrumbs component styling
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  list-style: none;
+  background-color: #f8f9fa;
+  border-radius: 0.25rem;
+
+  .breadcrumb-item {
+    display: flex;
+    align-items: center;
+
+    + .breadcrumb-item {
+      padding-left: 0.5rem;
+
+      &::before {
+        display: inline-block;
+        padding-right: 0.5rem;
+        color: #6c757d;
+        content: "/";
+      }
+    }
+
+    &.active {
+      color: #6c757d;
+    }
+
+    a {
+      color: #007bff;
+      text-decoration: none;
+
+      &:hover {
+        color: #0056b3;
+        text-decoration: underline;
+      }
+    }
+  }
+} 

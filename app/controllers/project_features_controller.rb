@@ -16,6 +16,11 @@ class ProjectFeaturesController < ApplicationController
       create_assignment(@project_feature, project_feature_params[:responsible_user_id], 'responsible') if project_feature_params[:responsible_user_id].present?
       create_assignment(@project_feature, project_feature_params[:accountable_user_id], 'accountable') if project_feature_params[:accountable_user_id].present?
 
+      # Prevent overlaps for all features with the same responsible contributor
+      if @project_feature.responsible_contributors.any?
+        @project_feature.prevent_overlaps_for_responsible_contributors
+      end
+
       redirect_to project_path(@project), notice: 'Feature created successfully.'
     else
       render :new, status: :unprocessable_entity
@@ -37,6 +42,11 @@ class ProjectFeaturesController < ApplicationController
       create_assignment(@project_feature, project_feature_params[:responsible_user_id], 'responsible') if project_feature_params[:responsible_user_id].present?
       create_assignment(@project_feature, project_feature_params[:accountable_user_id], 'accountable') if project_feature_params[:accountable_user_id].present?
 
+      # Prevent overlaps for all features with the same responsible contributor
+      if @project_feature.responsible_contributors.any?
+        @project_feature.prevent_overlaps_for_responsible_contributors
+      end
+
       redirect_to project_path(@project), notice: 'Feature updated successfully.'
     else
       render :edit, status: :unprocessable_entity
@@ -44,13 +54,36 @@ class ProjectFeaturesController < ApplicationController
   end
 
   def destroy
+    # Store responsible contributors before deletion
+    responsible_contributors = @project_feature.responsible_contributors.to_a
+    
     @project_feature.destroy
+    
+    # Readjust remaining features for the same responsible contributors
+    if responsible_contributors.any?
+      responsible_user_ids = responsible_contributors.map(&:id)
+      remaining_features = @project.project_features
+                                  .joins(:responsible_assignments)
+                                  .where(feature_assignments: { user_id: responsible_user_ids, role: 'responsible' })
+                                  .order(:start_date)
+      
+      if remaining_features.any?
+        # Use the first remaining feature to trigger the overlap prevention
+        remaining_features.first.prevent_overlaps_for_responsible_contributors
+      end
+    end
+    
     redirect_to project_path(@project), notice: 'Feature deleted.'
   end
 
   def update_dates
     Rails.logger.info "PARAMS: #{params.inspect}"
     if @project_feature.update(feature_date_params)
+      # Prevent overlaps for all features with the same responsible contributor
+      if @project_feature.responsible_contributors.any?
+        @project_feature.prevent_overlaps_for_responsible_contributors
+      end
+      
       render json: {
         status: 'success',
         feature: {

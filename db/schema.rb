@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_05_30_075627) do
+ActiveRecord::Schema[7.1].define(version: 2025_06_13_071948) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -43,6 +43,8 @@ ActiveRecord::Schema[7.1].define(version: 2025_05_30_075627) do
     t.string "department"
     t.date "start_date"
     t.date "end_date"
+    t.bigint "parent_feature_id"
+    t.index ["parent_feature_id"], name: "index_project_features_on_parent_feature_id"
     t.index ["project_id"], name: "index_project_features_on_project_id"
   end
 
@@ -56,6 +58,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_05_30_075627) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "currency"
+    t.string "status"
     t.index ["user_id"], name: "index_projects_on_user_id"
   end
 
@@ -78,6 +81,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_05_30_075627) do
   add_foreign_key "feature_assignments", "users"
   add_foreign_key "project_contributors", "projects"
   add_foreign_key "project_contributors", "users"
+  add_foreign_key "project_features", "project_features", column: "parent_feature_id"
   add_foreign_key "project_features", "projects"
   add_foreign_key "projects", "users"
 end

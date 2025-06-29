@@ -1,0 +1,135 @@
+// List Groups component styling
+.list-group {
+  display: flex;
+  flex-direction: column;
+  padding-left: 0;
+  margin-bottom: 0;
+  border-radius: 0.25rem;
+
+  .list-group-item {
+    position: relative;
+    display: block;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: -1px;
+    background-color: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.125);
+
+    &:first-child {
+      border-top-left-radius: inherit;
+      border-top-right-radius: inherit;
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+      border-bottom-left-radius: inherit;
+      border-bottom-right-radius: inherit;
+    }
+
+    &.active {
+      z-index: 2;
+      color: #fff;
+      background-color: #007bff;
+      border-color: #007bff;
+    }
+
+    &.disabled {
+      color: #6c757d;
+      pointer-events: none;
+      background-color: #fff;
+    }
+
+    // List group item variants
+    &.list-group-item-primary {
+      color: #004085;
+      background-color: #b8daff;
+    }
+
+    &.list-group-item-secondary {
+      color: #383d41;
+      background-color: #d6d8db;
+    }
+
+    &.list-group-item-success {
+      color: #155724;
+      background-color: #c3e6cb;
+    }
+
+    &.list-group-item-danger {
+      color: #721c24;
+      background-color: #f5c6cb;
+    }
+
+    &.list-group-item-warning {
+      color: #856404;
+      background-color: #ffeeba;
+    }
+
+    &.list-group-item-info {
+      color: #0c5460;
+      background-color: #bee5eb;
+    }
+
+    &.list-group-item-light {
+      color: #818182;
+      background-color: #fdfdfe;
+    }
+
+    &.list-group-item-dark {
+      color: #1b1e21;
+      background-color: #c6c8ca;
+    }
+  }
+}
+
+// Horizontal list groups
+.list-group-horizontal {
+  flex-direction: row;
+
+  > .list-group-item {
+    &:first-child {
+      border-top-right-radius: 0.25rem;
+      border-bottom-left-radius: 0;
+    }
+
+    &:last-child {
+      border-top-right-radius: 0;
+      border-bottom-left-radius: 0.25rem;
+    }
+
+    &.active {
+      margin-top: 0;
+    }
+  }
+}
+
+// Flush list groups
+.list-group-flush {
+  border-radius: 0;
+
+  > .list-group-item {
+    border-width: 0 0 1px;
+
+    &:last-child {
+      border-bottom-width: 0;
+    }
+  }
+}
+
+// Interactive list groups
+.list-group-item-action {
+  width: 100%;
+  color: #495057;
+  text-align: inherit;
+
+  &:hover,
+  &:focus {
+    color: #495057;
+    text-decoration: none;
+    background-color: #f8f9fa;
+  }
+
+  &:active {
+    color: #212529;
+    background-color: #e9ecef;
+  }
+} 

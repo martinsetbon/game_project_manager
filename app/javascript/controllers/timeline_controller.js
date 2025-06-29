@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["grid", "timeHeader", "department", "timeHeaders"]
+  static targets = ["grid", "timeHeader", "contributor", "timeHeaders"]
 
   connect() {
     this.setDefaultZoom()
@@ -15,6 +15,7 @@ export default class extends Controller {
 
   zoom(event) {
     const zoomLevel = event.currentTarget.dataset.zoom
+    console.log('Zoom level set to:', zoomLevel);
     
     // Remove all zoom classes and active states
     this.element.querySelectorAll('[data-zoom]').forEach(btn => btn.classList.remove('active'))
@@ -46,8 +47,8 @@ export default class extends Controller {
     // Set the width on the time headers container
     this.timeHeadersTarget.style.width = `${totalWidth}px`
 
-    // Find all department rows and set their width
-    this.element.querySelectorAll('.department-row').forEach(row => {
+    // Find all contributor rows and set their width
+    this.element.querySelectorAll('.contributor-row').forEach(row => {
       row.style.width = `${totalWidth}px`
     })
   }
@@ -66,6 +67,7 @@ export default class extends Controller {
   }
 
   adjustTimeHeaders(zoomLevel) {
+    console.log('Adjusting time headers for zoom level:', zoomLevel);
     const headers = this.timeHeaderTargets
     const headerWidth = {
       day: 60,
@@ -79,6 +81,8 @@ export default class extends Controller {
       const yearLabel = header.querySelector('.year-label')
       const isMonthStart = header.dataset.isMonthStart === 'true'
       const isYearStart = header.dataset.isYearStart === 'true'
+
+      console.log('Header:', header.dataset.date, 'isYearStart:', isYearStart);
 
       // Reset visibility and width
       header.style.flex = `0 0 ${headerWidth}px`
@@ -108,41 +112,53 @@ export default class extends Controller {
   }
 
   adjustFeaturePositions(zoomLevel) {
+    console.log('Adjusting feature positions for zoom level:', zoomLevel);
     const baseWidth = 60 // Base width for day view
-    const zoomScales = {
-      day: 1,
-      month: 3,
-      year: 5
+    const headerWidths = {
+      day: 60,
+      month: 180,
+      year: 300
     }
 
-    this.element.querySelectorAll('.feature-bar').forEach(feature => {
-      const originalLeft = parseInt(feature.dataset.originalLeft)
-      const duration = parseInt(feature.dataset.duration)
-      const scale = zoomScales[zoomLevel]
-      
-      // Calculate new dimensions based on zoom level
-      const newLeft = (originalLeft / baseWidth) * (baseWidth * scale)
-      const newWidth = Math.max(duration * (baseWidth / scale), baseWidth)
-      
-      // Apply new dimensions with transition
-      feature.style.left = `${newLeft}px`
-      feature.style.width = `${newWidth}px`
-    })
-  }
+    // Build an array of header dates for the current zoom level
+    let headerDates = [];
+    this.timeHeaderTargets.forEach(header => {
+      if (zoomLevel === 'day' ||
+          (zoomLevel === 'month' && header.dataset.isMonthStart === 'true') ||
+          (zoomLevel === 'year' && header.dataset.isYearStart === 'true')) {
+        headerDates.push(new Date(header.dataset.date));
+      }
+    });
 
-  toggleSection(event) {
-    const button = event.currentTarget
-    const department = button.dataset.department
-    
-    // Toggle the department label
-    const label = this.element.querySelector(`.department-label[data-department="${department}"]`)
-    label.classList.toggle('folded')
-    
-    // Toggle the department row
-    const row = this.element.querySelector(`.department-row[data-department="${department}"]`)
-    row.classList.toggle('folded')
-    
-    // Toggle the button icon
-    button.classList.toggle('collapsed')
+    this.element.querySelectorAll('.feature-bar').forEach(feature => {
+      const featureStart = new Date(feature.dataset.startDate);
+      const duration = parseInt(feature.dataset.duration);
+      let leftIndex = 0;
+
+      // Find the index of the header that matches the feature's start date (or the closest one before it)
+      for (let i = 0; i < headerDates.length; i++) {
+        if (featureStart >= headerDates[i]) {
+          leftIndex = i;
+        } else {
+          break;
+        }
+      }
+
+      // Calculate new left and width
+      const newLeft = leftIndex * headerWidths[zoomLevel];
+      let newWidth = headerWidths[zoomLevel];
+      if (zoomLevel === 'day') {
+        newWidth = Math.max(duration * headerWidths[zoomLevel], headerWidths[zoomLevel]);
+      }
+      // In month/year view, keep width to one header for now (could be improved to span multiple months/years)
+
+      // Apply new dimensions with transition
+      feature.style.left = `${newLeft}px`;
+      feature.style.width = `${newWidth}px`;
+      
+      // Log the applied styles
+      console.log('Feature:', feature.dataset.id, 'newLeft:', newLeft, 'newWidth:', newWidth);
+      console.log('Applied styles:', feature.style.left, feature.style.width);
+    });
   }
 } 

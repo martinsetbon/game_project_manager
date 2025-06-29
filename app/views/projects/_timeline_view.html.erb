@@ -16,24 +16,38 @@
   </div>
   
   <div class="timeline-grid" data-timeline-target="grid">
-    <!-- Department labels (Y-axis) -->
-    <div class="department-labels">
-      <div class="department-label header-cell">Departments</div>
-      <% ProjectFeature::DEPARTMENTS.each do |department| %>
+    <!-- Contributor labels (Y-axis) -->
+    <div class="contributor-labels">
+      <div class="contributor-label header-cell">Responsible Contributors</div>
+      <% 
+        # Get all unique responsible contributors from project features
+        responsible_contributors = project.project_features.joins(:responsible_assignments)
+                                          .includes(:responsible_assignments, :responsible_contributors)
+                                          .map(&:responsible_contributors)
+                                          .flatten
+                                          .uniq
+        
+        # Add features without responsible contributors to "Unassigned" group
+        unassigned_features = project.project_features.left_joins(:responsible_assignments)
+                                     .where(feature_assignments: { id: nil })
+        
+        all_contributors = responsible_contributors + (unassigned_features.any? ? [nil] : [])
+      %>
+      <% all_contributors.each do |contributor| %>
         <% 
-          features = project.project_features.where(department: department)
-          rows_needed = calculate_required_rows(features, project.start_date, project.end_date || (project.start_date + 5.years))
-          section_height = [60, (rows_needed * 50) + 20].max # Base height 60px, 50px per feature, 20px padding
+          if contributor.nil?
+            features = unassigned_features
+            contributor_name = "Unassigned"
+            contributor_id = "unassigned"
+          else
+            features = project.project_features.joins(:responsible_assignments)
+                              .where(feature_assignments: { user_id: contributor.id, role: 'responsible' })
+            contributor_name = contributor.name || contributor.email
+            contributor_id = contributor.id
+          end
         %>
-        <div class="department-label" data-department="<%= department %>" style="height: <%= section_height %>px">
-          <div class="d-flex justify-content-between w-100 align-items-center">
-            <span><%= department %></span>
-            <button class="btn btn-link btn-sm p-0 toggle-section" 
-                    data-action="timeline#toggleSection" 
-                    data-department="<%= department %>">
-              <i class="fas fa-chevron-up"></i>
-            </button>
-          </div>
+        <div class="contributor-label" data-contributor="<%= contributor_id %>" style="height: 60px">
+          <span><%= contributor_name %></span>
         </div>
       <% end %>
     </div>
@@ -46,11 +60,11 @@
           zoom = params[:zoom] || 'day'
           case zoom
           when 'year'
-            start_date = Date.today.beginning_of_year
+            start_date = Date.new(2025, 1, 1)
           when 'month'
-            start_date = Date.today.beginning_of_month
+            start_date = Date.new(2025, 1, 1).beginning_of_month
           else
-            start_date = Date.today
+            start_date = Date.new(2025, 1, 1)
           end
           end_date = project.end_date || (start_date + 5.years)
           total_days = (end_date - start_date).to_i
@@ -69,81 +83,53 @@
                data-is-month-start="<%= date.day == 1 %>"
                data-is-year-start="<%= date.day == 1 && date.month == 1 %>">
             <span class="day-label"><%= date.strftime('%d/%m') %></span>
-            <span class="month-label" style="display: none;"><%= date.strftime('%B') %></span>
+            <span class="month-label" style="display: none;"><%= date.strftime('%B %Y') %></span>
             <span class="year-label" style="display: none;"><%= date.year %></span>
           </div>
         <% end %>
       </div>
 
-      <!-- Department rows with features -->
-      <% ProjectFeature::DEPARTMENTS.each do |department| %>
+      <!-- Contributor rows with features -->
+      <% all_contributors.each do |contributor| %>
         <% 
-          features = project.project_features.where(department: department)
-          
-          # Sort features by start date and group them into rows to avoid overlap
-          rows = []
-          features.sort_by { |f| f.start_date || start_date }.each do |feature|
-            feature_start = feature.start_date || start_date
-            feature_end = feature.end_date || (feature.start_date + feature.duration.days if feature.start_date && feature.duration)
-            
-            # Find first row where this feature can fit
-            row_index = rows.find_index do |row|
-              row.none? do |existing|
-                existing_start = existing.start_date || start_date
-                existing_end = existing.end_date || end_date
-                (feature_start <= existing_end) && (feature_end >= existing_start)
-              end
-            end
-            
-            # If no suitable row found, create a new one
-            if row_index.nil?
-              rows << [feature]
-            else
-              rows[row_index] << feature
-            end
+          if contributor.nil?
+            features = unassigned_features
+            contributor_id = "unassigned"
+          else
+            features = project.project_features.joins(:responsible_assignments)
+                              .where(feature_assignments: { user_id: contributor.id, role: 'responsible' })
+            contributor_id = contributor.id
           end
-          
-          section_height = [60, (rows.length * 50) + 20].max # Match the label height
         %>
-        <div class="department-row" 
-             data-timeline-target="department"
-             data-department="<%= department %>" 
-             style="height: <%= section_height %>px">
-          <% rows.each_with_index do |row_features, row_index| %>
+        <div class="contributor-row" 
+             data-timeline-target="contributor"
+             data-contributor="<%= contributor_id %>" 
+             style="height: 60px">
+          <% features.sort_by { |f| f.start_date || start_date }.each do |feature| %>
             <% 
-              # Sort features by start date to ensure earliest appears first
-              sorted_features = row_features.sort_by { |f| f.start_date || start_date }
+              feature_start = feature.start_date || start_date
+              feature_end = feature.end_date || (feature.start_date + feature.duration.days if feature.start_date && feature.duration)
+              days_from_start = (feature_start - start_date).to_i
+              duration = (feature_end - feature_start).to_i
+              left_px = days_from_start * 60
+              width_px = [duration * 60, 60].max
             %>
-            <% sorted_features.each do |feature| %>
-              <% 
-                feature_start = feature.start_date || start_date
-                feature_end = feature.end_date || (feature.start_date + feature.duration.days if feature.start_date && feature.duration)
-                
-                # Calculate exact pixel position based on days
-                days_from_start = (feature_start - start_date).to_i
-                duration = (feature_end - feature_start).to_i
-                
-                # Each day is 60px wide (from CSS)
-                left_px = days_from_start * 60
-                width_px = [duration * 60, 60].max # Minimum width of 60px
-              %>
-              <div 
-                class="feature-bar feature-card <%= feature.status %>"
-                style="left: <%= left_px %>px; width: <%= width_px %>px; top: <%= 10 + (row_index * 50) %>px;"
-                data-x="<%= left_px %>"
-                data-y="<%= 10 + (row_index * 50) %>"
-                data-original-left="<%= left_px %>"
-                data-original-width="<%= width_px %>"
-                data-start-date="<%= feature_start %>"
-                data-end-date="<%= feature_end %>"
-                data-duration="<%= duration %>"
-                data-project-id="<%= project.id %>"
-                data-id="<%= feature.id %>"
-                title="<%= feature.name %> (<%= feature.duration %> days)"
-              >
-                <%= feature.name %>
-              </div>
-            <% end %>
+            <div 
+              class="feature-bar feature-card <%= feature.status %>"
+              style="left: <%= left_px %>px; width: <%= width_px %>px; top: 10px;"
+              data-x="<%= left_px %>"
+              data-y="10"
+              data-original-left="<%= left_px %>"
+              data-original-width="<%= width_px %>"
+              data-start-date="<%= feature_start %>"
+              data-end-date="<%= feature_end %>"
+              data-duration="<%= duration %>"
+              data-project-id="<%= project.id %>"
+              data-id="<%= feature.id %>"
+              title="<%= feature.name %> (<%= feature.duration %> days) - <%= feature.department %>"
+            >
+              <%= feature.name %>
+            </div>
           <% end %>
         </div>
       <% end %>
