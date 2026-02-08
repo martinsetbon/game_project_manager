@@ -2,8 +2,7 @@
 
 Rails project: Video game project schedule management app (in production)
 
-
-![game-project-manager-mockups](sreenshot/mockup.jpg)
+![mockup](https://github.com/user-attachments/assets/bebf837d-3a9d-4beb-8fef-3e72611ee4bf)
 
 <br>
    
