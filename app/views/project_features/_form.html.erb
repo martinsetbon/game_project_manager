@@ -1,57 +1,192 @@
-<%= simple_form_for([@project, @project_feature], data: {
-  controller: "feature-assignment",
-  action: "turbo:submit-end->feature-assignment#handleSubmission"
-}) do |f| %>
-  <div class="form-group mb-3">
-    <%= f.input :name, label: "Feature Name", required: true %>
-  </div>
-  <div class="form-group mb-3">
-    <%= f.input :duration, label: "Feature Duration (days)", required: true %>
-  </div>
-  <div class="form-group mb-3">
-    <%= f.input :department,
-                as: :select,
-                collection: ProjectFeature::DEPARTMENTS,
-                label: "Department",
-                required: true,
-                include_blank: "Select a department" %>
-  </div>
-  <div class="form-group mb-3">
-    <%= f.input :status,
-                as: :select,
-                collection: [['Not Started', 'not_started'], ['On Going', 'work_in_progress'], ['Done', 'job_done']],
-                label: "Feature Status",
-                include_blank: false %>
-  </div>
-  <div class="form-group mb-3">
-    <%= f.input :start_date, as: :date, html5: true, required: false %>
-  </div>
-  <div class="form-group mb-3">
-    <%= f.input :responsible_user_id,
-                as: :select,
-                collection: @project.project_contributors.includes(:user).map { |pc| [pc.user.name, pc.user.id] },
-                label: "Assign Responsible Team Member (Optional)",
-                include_blank: "Select a team member",
-                input_html: {
-                  data: {
-                    feature_assignment_target: "responsibleSelect",
-                    action: "change->feature-assignment#checkDuplicate"
-                  }
-                } %>
-  </div>
-  <div class="form-group mb-3">
-    <%= f.input :accountable_user_id,
-                as: :select,
-                collection: @project.project_contributors.includes(:user).map { |pc| [pc.user.name, pc.user.id] },
-                label: "Assign Accountable Team Member (Optional)",
-                include_blank: "Select a team member",
-                input_html: {
-                  data: {
-                    feature_assignment_target: "accountableSelect",
-                    action: "change->feature-assignment#checkDuplicate"
-                  }
-                } %>
-  </div>
+<%= form_with model: [@project, @project_feature], data: {
+  controller: "feature-assignment feature-template-selector",
+  action: "turbo:submit-end->feature-assignment#handleSubmission",
+  feature_template_selector_users_value: (@all_users || []).map { |u| { id: u.id, name: u.name, job: u.job } }.to_json
+}, local: true do |f| %>
+  
+  <% if @project_feature.can_edit_details?(current_user) %>
+    <!-- Feature Name -->
+    <div class="project-info-field">
+      <div class="field-display">
+        <div class="field-label">
+          <span>Feature Name</span>
+        </div>
+        <div class="field-separator"></div>
+        <div class="field-value">
+          <%= f.text_field :name, class: "form-control", required: true, placeholder: "Enter feature name" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Start Date -->
+    <div class="project-info-field">
+      <div class="field-display">
+        <div class="field-label">
+          <span>Start Date</span>
+        </div>
+        <div class="field-separator"></div>
+        <div class="field-value">
+          <%= f.date_field :start_date, class: "form-control", required: false %>
+        </div>
+      </div>
+    </div>
+
+    <% if @project_feature.new_record? %>
+      <!-- Template Selection (only for new features) -->
+      <div class="project-info-field" data-feature-template-selector-target="templateField">
+        <div class="field-display">
+          <div class="field-label">
+            <span>Task Template</span>
+          </div>
+          <div class="field-separator"></div>
+          <div class="field-value">
+            <%= f.hidden_field :template_id, data: { feature_template_selector_target: "templateId" } %>
+            <div data-feature-template-selector-target="templateSelector">
+              <select class="form-control mb-2" data-feature-template-selector-target="templateSelect" data-action="change->feature-template-selector#onTemplateSelect">
+                <option value="">Select a template (optional)</option>
+              </select>
+              <button type="button" class="btn btn-sm btn-secondary" data-action="click->feature-template-selector#showCreateTemplate">
+                <i class="bi bi-plus-circle"></i> Create New Template
+              </button>
+            </div>
+            <div data-feature-template-selector-target="createTemplateSection" class="d-none mt-3 p-3 border rounded">
+              <h6>Create New Template</h6>
+              <div class="mb-2">
+                <label>Template Name</label>
+                <input type="text" class="form-control" data-feature-template-selector-target="newTemplateName" placeholder="Enter template name">
+              </div>
+              <div data-feature-template-selector-target="taskEditor">
+                <!-- Task editor will be rendered here -->
+              </div>
+              <div class="mt-2">
+                <button type="button" class="btn btn-sm btn-primary" data-action="click->feature-template-selector#addTask">Add Task</button>
+                <button type="button" class="btn btn-sm btn-success" data-action="click->feature-template-selector#saveNewTemplate">Save Template & Use</button>
+                <button type="button" class="btn btn-sm btn-secondary" data-action="click->feature-template-selector#cancelCreateTemplate">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% else %>
+      <!-- End Date (only for existing features) -->
+      <div class="project-info-field">
+        <div class="field-display">
+          <div class="field-label">
+            <span>End Date</span>
+          </div>
+          <div class="field-separator"></div>
+          <div class="field-value">
+            <%= f.date_field :end_date, class: "form-control", required: false %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Responsible Team Member (only for existing features) -->
+      <div class="project-info-field">
+        <div class="field-display">
+          <div class="field-label">
+            <span>Responsible (Optional)</span>
+          </div>
+          <div class="field-separator"></div>
+          <div class="field-value">
+            <%= f.select :responsible_user_id,
+                        options_for_select(@all_users.map { |user| ["#{user.name} - #{user.job}", user.id] }, @project_feature.responsible_user_id),
+                        { include_blank: "Select a team member" },
+                        { class: "form-control",
+                          data: {
+                            feature_assignment_target: "responsibleSelect",
+                            action: "change->feature-assignment#checkDuplicate"
+                          } } %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accountable Team Member (only for existing features) -->
+      <div class="project-info-field">
+        <div class="field-display">
+          <div class="field-label">
+            <span>Accountable (Optional)</span>
+          </div>
+          <div class="field-separator"></div>
+          <div class="field-value">
+            <%= f.select :accountable_user_id,
+                        options_for_select(@all_users.map { |user| ["#{user.name} - #{user.job}", user.id] }, @project_feature.accountable_user_id),
+                        { include_blank: "Select a team member" },
+                        { class: "form-control",
+                          data: {
+                            feature_assignment_target: "accountableSelect",
+                            action: "change->feature-assignment#checkDuplicate"
+                          } } %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <!-- Show read-only feature details for contributors -->
+    <div class="project-info-field">
+      <div class="field-display">
+        <div class="field-label">
+          <span>Feature Name</span>
+        </div>
+        <div class="field-separator"></div>
+        <div class="field-value">
+          <%= @project_feature.name || 'Not set' %>
+        </div>
+      </div>
+    </div>
+    <div class="project-info-field">
+      <div class="field-display">
+        <div class="field-label">
+          <span>Start Date</span>
+        </div>
+        <div class="field-separator"></div>
+        <div class="field-value">
+          <%= @project_feature.start_date ? @project_feature.start_date.strftime('%Y-%m-%d') : 'Not set' %>
+        </div>
+      </div>
+    </div>
+    <div class="project-info-field">
+      <div class="field-display">
+        <div class="field-label">
+          <span>End Date</span>
+        </div>
+        <div class="field-separator"></div>
+        <div class="field-value">
+          <%= @project_feature.end_date ? @project_feature.end_date.strftime('%Y-%m-%d') : 'Not set' %>
+        </div>
+      </div>
+    </div>
+    <div class="project-info-field">
+      <div class="field-display">
+        <div class="field-label">
+          <span>Responsible</span>
+        </div>
+        <div class="field-separator"></div>
+        <div class="field-value">
+          <% if @project_feature.responsible_contributors.any? %>
+            <%= @project_feature.responsible_contributors.map(&:name).join(", ") %>
+          <% else %>
+            Not assigned
+          <% end %>
+        </div>
+      </div>
+    </div>
+    <div class="project-info-field">
+      <div class="field-display">
+        <div class="field-label">
+          <span>Accountable</span>
+        </div>
+        <div class="field-separator"></div>
+        <div class="field-value">
+          <% if @project_feature.accountable_contributors.any? %>
+            <%= @project_feature.accountable_contributors.map(&:name).join(", ") %>
+          <% else %>
+            Not assigned
+          <% end %>
+        </div>
+      </div>
+    </div>
+  <% end %>
 
   <!-- Button trigger modal -->
   <button type="button"
@@ -80,8 +215,54 @@
     </div>
   </div>
 
-  <div class="form-group">
-    <%= f.button :submit, class: "btn btn-primary", data: { feature_assignment_target: "submitButton" } %>
-    <%= link_to 'Cancel', project_path(@project), class: "btn btn-secondary" %>
+  <!-- Status Change Section - Only show for existing features -->
+  <% if @project_feature.persisted? && @project_feature.can_change_status?(current_user) %>
+    <div class="project-info-field">
+      <div class="field-display">
+        <div class="field-label">
+          <span>Change Status</span>
+        </div>
+        <div class="field-separator"></div>
+        <div class="field-value">
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <% case @project_feature.status %>
+            <% when 'not_started' %>
+              <% if @project_feature.responsible_contributors.include?(current_user) || @project.user == current_user %>
+                <%= link_to 'Start Work', change_status_project_project_feature_path(@project, @project_feature, status: 'work_in_progress'), 
+                    data: { turbo_method: :patch }, class: "btn btn-primary" %>
+              <% end %>
+            <% when 'work_in_progress' %>
+              <% if @project_feature.responsible_contributors.include?(current_user) || @project.user == current_user %>
+                <%= link_to 'Set Stand By', change_status_project_project_feature_path(@project, @project_feature, status: 'stand_by'), 
+                    data: { turbo_method: :patch }, class: "btn btn-info" %>
+                <%= link_to 'Request Approval for Job Done', change_status_project_project_feature_path(@project, @project_feature, status: 'request_approval'), 
+                    data: { turbo_method: :patch }, class: "btn btn-success" %>
+              <% end %>
+              <% if @project_feature.approval_requested && (@project_feature.accountable_contributors.include?(current_user) || @project.user == current_user) %>
+                <%= link_to 'Approve', change_status_project_project_feature_path(@project, @project_feature, status: 'job_done'), 
+                    data: { turbo_method: :patch }, class: "btn btn-success" %>
+              <% end %>
+            <% when 'stand_by' %>
+              <% if @project_feature.responsible_contributors.include?(current_user) || @project.user == current_user %>
+                <%= link_to 'Resume Work', change_status_project_project_feature_path(@project, @project_feature, status: 'work_in_progress'), 
+                    data: { turbo_method: :patch }, class: "btn btn-primary" %>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Form Actions -->
+  <div style="display: flex; gap: 1rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+    <%= f.submit @project_feature.new_record? ? "Create Feature" : "Update Feature", 
+        class: "btn btn-primary", 
+        style: "display: flex; align-items: center; gap: 0.5rem;",
+        data: { feature_assignment_target: "submitButton" } %>
+    <%= link_to project_path(@project), class: "btn btn-secondary", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
+      <i class="bi bi-arrow-left"></i>
+      Cancel
+    <% end %>
   </div>
 <% end %>

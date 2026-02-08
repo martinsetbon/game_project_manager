@@ -10,8 +10,20 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
   </head>
-  <body><%= render "shared/navbar" %>
-    <%= render "shared/flashes" %>
-    <%= yield %>
+  <body>
+    <% if user_signed_in? %>
+      <%= render "shared/sidebar" %>
+      <%= render "shared/top_nav" %>
+      <div class="main-content">
+        <%= render "shared/flashes" %>
+        <%= yield %>
+      </div>
+    <% else %>
+      <%= render "shared/navbar" %>
+      <div class="app-container">
+        <%= render "shared/flashes" %>
+        <%= yield %>
+      </div>
+    <% end %>
   </body>
 </html>

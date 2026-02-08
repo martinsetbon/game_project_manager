@@ -1,66 +1,345 @@
-<div class="container mt-4">
-  <div class="card">
-    <div class="card-header">
-      <h1 class="mb-0"><%= @project_feature.name %></h1>
-    </div>
-    <div class="card-body">
-      <div class="mb-4">
-        <h5 class="card-title">Duration</h5>
-        <% if @project_feature.duration %>
-          <p class="card-text"><%= @project_feature.duration %> days</p>
-          <% calculated_end_date = @project_feature.end_date || (@project_feature.start_date + @project_feature.duration.days if @project_feature.start_date && @project_feature.duration) %>
-          <p class="card-text text-muted">
-            From <%= @project_feature.start_date&.strftime('%B %d, %Y') || 'No start date' %> 
-            to <%= calculated_end_date&.strftime('%B %d, %Y') || 'No end date' %>
-          </p>
-        <% else %>
-          <p class="card-text text-muted">No duration set</p>
-        <% end %>
-      </div>
+<div class="new-dashboard">
+  <!-- Page Title -->
+  <div class="page-title">
+    <h1><%= @project_feature.name %></h1>
+  </div>
 
-      <div class="mb-4">
-        <h5 class="card-title">Status</h5>
-        <p class="card-text">
-          <span class="badge <%= status_badge_class(@project_feature.status) %> fs-6">
-            <%= @project_feature.status.humanize %>
-          </span>
-        </p>
-      </div>
-
-      <div class="mb-4">
-        <h5 class="card-title">Contributors</h5>
-        <div class="row">
-          <div class="col-md-6">
-            <h6 class="text-muted">Responsible</h6>
-            <ul class="list-unstyled">
-              <% @project_feature.feature_assignments.where(role: 'responsible').each do |assignment| %>
-                <li><%= assignment.user.name %> - <%= assignment.user.job %></li>
-              <% end %>
-            </ul>
-          </div>
-          <div class="col-md-6">
-            <h6 class="text-muted">Accountable</h6>
-            <ul class="list-unstyled">
-              <% @project_feature.feature_assignments.where(role: 'accountable').each do |assignment| %>
-                <li><%= assignment.user.name %> - <%= assignment.user.job %></li>
-              <% end %>
-            </ul>
-          </div>
+  <!-- Feature Folder Content -->
+  <div class="feature-folder-content">
+    <% is_project_creator = @project.user == current_user %>
+    
+    <!-- Feature Name -->
+    <div class="project-info-field" data-controller="inline-edit" data-field="name">
+      <div class="field-display">
+        <div class="field-label">
+          <% if is_project_creator %>
+            <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+          <% end %>
+          <span>Feature Name</span>
+        </div>
+        <div class="field-separator"></div>
+        <div class="field-value">
+          <%= @project_feature.name %>
         </div>
       </div>
+      <% if is_project_creator %>
+        <div class="field-edit" style="display: none;">
+          <input type="text" class="form-control" value="<%= @project_feature.name %>" data-inline-edit-target="input">
+          <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+            <i class="bi bi-check"></i> Save
+          </button>
+          <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+            <i class="bi bi-x"></i> Cancel
+          </button>
+        </div>
+      <% end %>
+    </div>
 
-      <div class="mt-4">
-        <%= link_to edit_project_project_feature_path(@project, @project_feature), class: 'btn btn-primary me-2' do %>
-          <i class="bi bi-pencil"></i> Edit Feature
+    <!-- Status -->
+    <div class="project-info-field" data-controller="inline-edit" data-field="status">
+      <div class="field-display">
+        <div class="field-label">
+          <% if is_project_creator %>
+            <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+          <% end %>
+          <span>Status</span>
+        </div>
+        <div class="field-separator"></div>
+        <div class="field-value">
+          <span class="feature-status-badge status-<%= @project_feature.status %>">
+            <% if @project_feature.status == 'work_in_progress' %>
+              On Going
+            <% elsif @project_feature.status == 'stand_by' %>
+              Stand By
+            <% else %>
+              <%= @project_feature.status.humanize %>
+            <% end %>
+          </span>
+          <% if @project_feature.overdue? %>
+            <span class="overdue-badge" title="This feature's end date is overdue">
+              <i class="bi bi-exclamation-circle-fill"></i> Overdue
+            </span>
+          <% end %>
+        </div>
+      </div>
+      <% if is_project_creator %>
+        <div class="field-edit" style="display: none;">
+          <select class="form-control" data-inline-edit-target="input">
+            <option value="not_started" <%= 'selected' if @project_feature.status == 'not_started' %>>Not Started</option>
+            <option value="work_in_progress" <%= 'selected' if @project_feature.status == 'work_in_progress' %>>On Going</option>
+            <option value="stand_by" <%= 'selected' if @project_feature.status == 'stand_by' %>>Stand By</option>
+            <option value="job_done" <%= 'selected' if @project_feature.status == 'job_done' %>>Job Done</option>
+          </select>
+          <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+            <i class="bi bi-check"></i> Save
+          </button>
+          <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+            <i class="bi bi-x"></i> Cancel
+          </button>
+        </div>
+      <% end %>
+    </div>
+
+
+    <!-- Start Date -->
+    <div class="project-info-field" data-controller="inline-edit" data-field="start_date">
+      <div class="field-display">
+        <div class="field-label">
+          <% if is_project_creator %>
+            <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+          <% end %>
+          <span>Start Date</span>
+        </div>
+        <div class="field-separator"></div>
+        <div class="field-value date-value">
+          <i class="bi bi-calendar"></i>
+          <span><%= @project_feature.start_date ? @project_feature.start_date.strftime('%Y-%m-%d') : 'Not set' %></span>
+        </div>
+      </div>
+      <% if is_project_creator %>
+        <div class="field-edit" style="display: none;">
+          <input type="date" class="form-control" value="<%= @project_feature.start_date ? @project_feature.start_date.strftime('%Y-%m-%d') : '' %>" data-inline-edit-target="input">
+          <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+            <i class="bi bi-check"></i> Save
+          </button>
+          <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+            <i class="bi bi-x"></i> Cancel
+          </button>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- End Date -->
+    <div class="project-info-field" data-controller="inline-edit" data-field="end_date">
+      <div class="field-display">
+        <div class="field-label">
+          <% if is_project_creator %>
+            <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+          <% end %>
+          <span>End Date</span>
+        </div>
+        <div class="field-separator"></div>
+        <div class="field-value date-value">
+          <i class="bi bi-calendar"></i>
+          <span><%= @project_feature.end_date ? @project_feature.end_date.strftime('%Y-%m-%d') : 'Not set' %></span>
+        </div>
+      </div>
+      <% if is_project_creator %>
+        <div class="field-edit" style="display: none;">
+          <input type="date" class="form-control" value="<%= @project_feature.end_date ? @project_feature.end_date.strftime('%Y-%m-%d') : '' %>" data-inline-edit-target="input">
+          <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+            <i class="bi bi-check"></i> Save
+          </button>
+          <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+            <i class="bi bi-x"></i> Cancel
+          </button>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Responsible Contributor -->
+    <% responsible_contributor = @project_feature.responsible_contributors.first %>
+    <div class="project-info-field" data-controller="inline-edit" data-field="responsible_user_id">
+      <div class="field-display">
+        <div class="field-label">
+          <% if is_project_creator %>
+            <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+          <% end %>
+          <span>Responsible</span>
+        </div>
+        <div class="field-separator"></div>
+        <div class="field-value" data-inline-edit-target="display">
+          <% if responsible_contributor %>
+            <div class="contributor-item">
+              <span class="contributor-name"><%= responsible_contributor.name %></span>
+              <% if responsible_contributor.job.present? %>
+                <span class="contributor-job"><%= responsible_contributor.job %></span>
+              <% end %>
+            </div>
+          <% else %>
+            <span class="no-contributors">Not assigned</span>
+          <% end %>
+        </div>
+      </div>
+      <% if is_project_creator %>
+        <div class="field-edit" style="display: none;">
+          <select class="form-control" data-inline-edit-target="input">
+            <option value="0">None</option>
+            <% @all_users.each do |user| %>
+              <option value="<%= user.id %>" <%= 'selected' if responsible_contributor&.id == user.id %>>
+                <%= user.name %> - <%= user.job %>
+              </option>
+            <% end %>
+          </select>
+          <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+            <i class="bi bi-check"></i> Save
+          </button>
+          <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+            <i class="bi bi-x"></i> Cancel
+          </button>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Accountable Contributor -->
+    <% accountable_contributor = @project_feature.accountable_contributors.first %>
+    <div class="project-info-field" data-controller="inline-edit" data-field="accountable_user_id">
+      <div class="field-display">
+        <div class="field-label">
+          <% if is_project_creator %>
+            <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+          <% end %>
+          <span>Accountable</span>
+        </div>
+        <div class="field-separator"></div>
+        <div class="field-value" data-inline-edit-target="display">
+          <% if accountable_contributor %>
+            <div class="contributor-item">
+              <span class="contributor-name"><%= accountable_contributor.name %></span>
+              <% if accountable_contributor.job.present? %>
+                <span class="contributor-job"><%= accountable_contributor.job %></span>
+              <% end %>
+            </div>
+          <% else %>
+            <span class="no-contributors">Not assigned</span>
+          <% end %>
+        </div>
+      </div>
+      <% if is_project_creator %>
+        <div class="field-edit" style="display: none;">
+          <select class="form-control" data-inline-edit-target="input">
+            <option value="0">None</option>
+            <% @all_users.each do |user| %>
+              <option value="<%= user.id %>" <%= 'selected' if accountable_contributor&.id == user.id %>>
+                <%= user.name %> - <%= user.job %>
+              </option>
+            <% end %>
+          </select>
+          <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+            <i class="bi bi-check"></i> Save
+          </button>
+          <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+            <i class="bi bi-x"></i> Cancel
+          </button>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Feature Tasks Timeline -->
+    <% if @project_feature.start_date && @project_feature.end_date %>
+      <% duration = (@project_feature.end_date - @project_feature.start_date).to_i + 1 %>
+      <% top_level_tasks = @project_feature.tasks.top_level.not_in_backlog.ordered %>
+      <div class="feature-timeline-section" data-controller="feature-timeline" 
+           data-feature-timeline-project-id-value="<%= @project.id %>"
+           data-feature-timeline-feature-id-value="<%= @project_feature.id %>"
+           data-feature-timeline-duration-value="<%= duration %>"
+           data-feature-timeline-can-edit-value="<%= is_project_creator %>">
+        <div class="timeline-label-header">
+          <span>Feature Tasks</span>
+          <% if is_project_creator %>
+            <button type="button" class="btn btn-sm btn-outline-primary ms-2" data-bs-toggle="modal" data-bs-target="#chooseTemplateModal_<%= @project_feature.id %>">
+              <i class="bi bi-list-ul"></i> Choose Template
+            </button>
+          <% end %>
+        </div>
+        <div class="timeline-card-container">
+          <div class="timeline-card" data-feature-timeline-target="card">
+            <div class="timeline-days-container">
+              <% (1..duration).each do |day| %>
+                <% task = top_level_tasks.find { |t| t.start_day && t.end_day && day >= t.start_day && day <= t.end_day } %>
+                <% is_first_task_day = task && day == task.start_day %>
+                <div class="timeline-day-cell-wrapper">
+                  <div class="timeline-day-number"><%= day %></div>
+                  <div class="timeline-day-cell <%= 'segment-day' if task %> <%= 'segment-day-first' if is_first_task_day %>" 
+                       data-day="<%= day %>"
+                       <% if task %>
+                       data-task-id="<%= task.id %>"
+                       data-task-name="<%= task.name %>"
+                       <% end %>>
+                  </div>
+                </div>
+                <%# Add checkpoint gap between days (checkpoint at day X appears between day X and day X+1) %>
+                <% if day < duration %>
+                  <% checkpoint = @project_feature.feature_checkpoints.find { |c| c.day == day } %>
+                  <%# Check if either adjacent day is part of a task %>
+                  <% prev_task = top_level_tasks.find { |t| t.start_day && t.end_day && day >= t.start_day && day <= t.end_day } %>
+                  <% next_task = top_level_tasks.find { |t| t.start_day && t.end_day && (day + 1) >= t.start_day && (day + 1) <= t.end_day } %>
+                  <% gap_locked = prev_task || next_task %>
+                  <div class="timeline-day-gap <%= 'gap-locked' if gap_locked %>" 
+                       data-day="<%= day %>"
+                       <% if is_project_creator && !gap_locked %>
+                       data-action="click->feature-timeline#addCheckpointAtGap"
+                       <% end %>>
+                    <% if checkpoint %>
+                      <div class="timeline-checkpoint" 
+                           data-checkpoint-id="<%= checkpoint.id %>"
+                           data-day="<%= checkpoint.day %>">
+                        <i class="bi bi-check-circle"></i>
+                        <% if is_project_creator %>
+                          <button class="checkpoint-delete-btn" data-action="click->feature-timeline#deleteCheckpoint" data-checkpoint-id="<%= checkpoint.id %>">
+                            <i class="bi bi-x"></i>
+                          </button>
+                        <% end %>
+                      </div>
+                    <% elsif is_project_creator && !gap_locked %>
+                      <div class="checkpoint-placeholder">
+                        <i class="bi bi-plus-circle"></i>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
+              <% end %>
+              <%# Display tasks as overlays on the timeline %>
+              <% top_level_tasks.each do |task| %>
+                <% next unless task.start_day && task.end_day %>
+                <% task_days = task.end_day - task.start_day + 1 %>
+                <%# Calculate position and width accounting for gap elements (8px each) %>
+                <%# Left: start of task (percentage + gaps before) %>
+                <% start_percent = ((task.start_day - 1) / duration.to_f * 100) %>
+                <% start_gap_px = (task.start_day - 1) * 8 %>
+                <%# Width: percentage of task days + gaps BETWEEN task days (not after) %>
+                <% width_percent = (task_days / duration.to_f * 100) %>
+                <%# Gaps between the task days: (task_days - 1) gaps of 8px each %>
+                <% width_gap_px = (task_days - 1) * 8 %>
+                <div class="timeline-segment-overlay timeline-task-overlay" 
+                     data-task-id="<%= task.id %>"
+                     data-start-day="<%= task.start_day %>"
+                     data-end-day="<%= task.end_day %>"
+                     data-duration="<%= duration %>"
+                     style="--segment-start-percent: <%= start_percent %>%; --segment-start-gap: <%= start_gap_px %>px; --segment-width-percent: <%= width_percent %>%; --segment-width-gap: <%= width_gap_px %>px;">
+                  <div class="segment-content">
+                    <span class="segment-name"><%= task.name %></span>
+                    <% if task.status == 'job_done' %>
+                      <i class="bi bi-check-circle-fill task-status-icon" style="color: #28a745;"></i>
+                    <% elsif task.status == 'work_in_progress' %>
+                      <i class="bi bi-arrow-repeat task-status-icon" style="color: #007bff;"></i>
+                    <% elsif task.status == 'stand_by' %>
+                      <i class="bi bi-pause-circle-fill task-status-icon" style="color: #ffc107;"></i>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+        <% if is_project_creator %>
+          <div class="timeline-hint" style="margin-top: 0.5rem; color: rgba(255, 255, 255, 0.6); font-size: 0.85rem;">
+            <i class="bi bi-info-circle"></i> Tasks are displayed on the timeline. Click on the gaps between days to add checkpoints.
+          </div>
         <% end %>
-        <%= link_to project_path(@project), class: 'btn btn-secondary me-2' do %>
-          <i class="bi bi-arrow-left"></i> Back to Project
-        <% end %>
-        <!-- Delete button -->
-        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal_<%= @project_feature.id %>">
+      </div>
+    <% end %>
+
+    <!-- Action Buttons -->
+    <div class="feature-actions">
+      <%= link_to project_path(@project), class: 'feature-action-btn back-btn' do %>
+        <i class="bi bi-arrow-left"></i> Back to Project
+      <% end %>
+      <% if is_project_creator %>
+        <button type="button" class="feature-action-btn delete-btn" data-bs-toggle="modal" data-bs-target="#deleteModal_<%= @project_feature.id %>">
           <i class="bi bi-trash"></i> Delete Feature
         </button>
-      </div>
+      <% end %>
     </div>
   </div>
 </div>
@@ -87,3 +366,310 @@
     </div>
   </div>
 </div>
+
+<!-- Choose Template Modal -->
+<div class="modal fade" id="chooseTemplateModal_<%= @project_feature.id %>" tabindex="-1" aria-labelledby="chooseTemplateModalLabel_<%= @project_feature.id %>" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="chooseTemplateModalLabel_<%= @project_feature.id %>">Choose Task Template</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div data-controller="template-selector"
+             data-template-selector-project-id-value="<%= @project.id %>"
+             data-template-selector-feature-id-value="<%= @project_feature.id %>"
+             data-template-selector-feature-duration-value="<%= @project_feature.start_date && @project_feature.end_date ? (@project_feature.end_date - @project_feature.start_date).to_i + 1 : 0 %>"
+             data-template-selector-users-value="<%= @all_users.map { |u| { id: u.id, name: u.name, job: u.job } }.to_json.html_safe %>">
+          <div class="mb-3">
+            <button type="button" class="btn btn-primary" data-action="click->template-selector#showCreateTemplate">
+              <i class="bi bi-plus-circle"></i> Create Template
+            </button>
+          </div>
+          <div class="template-list" data-template-selector-target="templateList">
+            <div class="text-muted">Loading templates...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create/Edit Template Modal -->
+<div class="modal fade" id="taskTemplateModal_<%= @project_feature.id %>" tabindex="-1" aria-labelledby="taskTemplateModalLabel_<%= @project_feature.id %>" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <% if @project_feature.start_date && @project_feature.end_date %>
+      <% feature_duration = (@project_feature.end_date - @project_feature.start_date).to_i + 1 %>
+      <% top_level_tasks = @project_feature.tasks.top_level.not_in_backlog.ordered %>
+      <div class="modal-content" data-controller="task-template-editor"
+           data-task-template-editor-project-id-value="<%= @project.id %>"
+           data-task-template-editor-feature-id-value="<%= @project_feature.id %>"
+           data-task-template-editor-feature-duration-value="<%= feature_duration %>"
+           data-task-template-editor-users-value='<%= @all_users.map { |u| { id: u.id, name: u.name, job: u.job } }.to_json %>'>
+        <div class="modal-header">
+          <h5 class="modal-title" id="taskTemplateModalLabel_<%= @project_feature.id %>">Create Task Template</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+              <small class="text-muted">
+                Feature Duration: <strong><%= feature_duration %> days</strong> 
+                (<%= @project_feature.start_date.strftime('%Y-%m-%d') %> to <%= @project_feature.end_date.strftime('%Y-%m-%d') %>)
+              </small>
+              <div class="mt-2">
+                <small class="text-muted">
+                  Total Task Duration: <strong data-task-template-editor-target="totalDuration">0</strong> days
+                  <span class="text-danger" data-task-template-editor-target="durationWarning" style="display: none;">
+                    (Exceeds feature duration!)
+                  </span>
+                </small>
+              </div>
+            </div>
+            <div class="task-template-list" data-task-template-editor-target="taskList">
+              <% if top_level_tasks.any? %>
+                <% top_level_tasks.each_with_index do |task, index| %>
+                  <% responsible_user = task.responsible_users.first %>
+                  <% accountable_user = task.accountable_users.first %>
+                  <div class="task-template-item mb-2">
+                    <div class="d-flex flex-column gap-2">
+                      <div class="d-flex align-items-center gap-2">
+                        <input type="text" class="form-control task-name-input" 
+                               value="<%= task.name %>" 
+                               placeholder="Task name"
+                               data-task-template-editor-target="nameInput">
+                        <input type="number" class="form-control task-duration-input" 
+                               value="<%= task.duration %>" 
+                               min="1" 
+                               placeholder="Days"
+                               style="width: 100px;"
+                               data-task-template-editor-target="durationInput"
+                               data-action="input->task-template-editor#updateTotalDuration">
+                        <span class="text-muted">days</span>
+                        <button type="button" class="btn btn-sm btn-danger" 
+                                data-action="click->task-template-editor#removeTask">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </div>
+                      <div class="d-flex align-items-center gap-2">
+                        <select class="form-control form-control-sm task-responsible-input" 
+                                data-task-template-editor-target="responsibleInput">
+                          <option value="0">No Responsible</option>
+                          <% @all_users.each do |user| %>
+                            <option value="<%= user.id %>" <%= 'selected' if responsible_user&.id == user.id %>>
+                              <%= user.name %> - <%= user.job %>
+                            </option>
+                          <% end %>
+                        </select>
+                        <select class="form-control form-control-sm task-accountable-input" 
+                                data-task-template-editor-target="accountableInput">
+                          <option value="0">No Accountable</option>
+                          <% @all_users.each do |user| %>
+                            <option value="<%= user.id %>" <%= 'selected' if accountable_user&.id == user.id %>>
+                              <%= user.name %> - <%= user.job %>
+                            </option>
+                          <% end %>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              <% else %>
+                <div class="text-muted mb-3">No tasks yet. Add tasks below.</div>
+              <% end %>
+            </div>
+            <div class="mt-3">
+              <button type="button" class="btn btn-sm btn-outline-primary" 
+                      data-action="click->task-template-editor#addTask">
+                <i class="bi bi-plus"></i> Add Task
+              </button>
+            </div>
+            <div class="mt-3">
+              <label class="form-label">Template Name</label>
+              <input type="text" class="form-control" 
+                     placeholder="Enter template name"
+                     id="templateNameInput_<%= @project_feature.id %>"
+                     data-task-template-editor-target="templateName"
+                     required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" 
+                  id="saveTemplateBtn_<%= @project_feature.id %>"
+                  onclick="console.log('Button clicked!'); window.saveTemplate_<%= @project_feature.id %>(); return false;"
+                  data-action="click->task-template-editor#saveTemplate"
+                  data-task-template-editor-target="saveButton">
+            Save Template
+          </button>
+        </div>
+      </div>
+      
+      <script>
+        // Global fallback function for save template button
+        (function() {
+          console.log('Registering saveTemplate function for feature <%= @project_feature.id %>');
+          
+          window.saveTemplate_<%= @project_feature.id %> = function(event) {
+            console.log('=== Global saveTemplate function called ===');
+            console.log('Feature ID:', <%= @project_feature.id %>);
+            console.log('Event:', event);
+            console.log('This:', this);
+            
+            if (event) {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+            
+            // Manually collect data and send
+            console.log('Collecting template data...');
+          const taskItems = document.querySelectorAll('#taskTemplateModal_<%= @project_feature.id %> .task-template-item');
+          const tasks = [];
+          
+          taskItems.forEach(item => {
+            const nameInput = item.querySelector('.task-name-input');
+            const durationInput = item.querySelector('.task-duration-input');
+            const responsibleInput = item.querySelector('.task-responsible-input');
+            const accountableInput = item.querySelector('.task-accountable-input');
+            
+            if (nameInput && durationInput) {
+              const name = nameInput.value.trim();
+              const duration = parseInt(durationInput.value) || 0;
+              const responsibleUserId = responsibleInput ? parseInt(responsibleInput.value) || 0 : 0;
+              const accountableUserId = accountableInput ? parseInt(accountableInput.value) || 0 : 0;
+              
+              if (name && duration > 0) {
+                tasks.push({
+                  name: name,
+                  duration: duration,
+                  responsible_user_id: responsibleUserId > 0 ? responsibleUserId : null,
+                  accountable_user_id: accountableUserId > 0 ? accountableUserId : null
+                });
+              }
+            }
+          });
+          
+          const templateName = document.getElementById('templateNameInput_<%= @project_feature.id %>')?.value.trim();
+          
+          if (!templateName) {
+            alert('Please enter a template name.');
+            return;
+          }
+          
+          if (tasks.length === 0) {
+            alert('Please add at least one task.');
+            return;
+          }
+          
+          const templateData = {
+            feature_template: {
+              name: templateName,
+              department: null,
+              tasks_data: tasks
+            }
+          };
+          
+          console.log('Sending template data:', templateData);
+          
+          const csrfToken = document.querySelector('meta[name="csrf-token"]');
+          if (!csrfToken) {
+            alert('CSRF token not found. Please refresh the page.');
+            return;
+          }
+          
+          console.log('Making POST request to /feature_templates...');
+          console.log('Template data:', templateData);
+          
+          fetch('/feature_templates', {
+            method: 'POST',
+            headers: {
+              'X-CSRF-Token': csrfToken.content,
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(templateData)
+          })
+          .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+            return response.text();
+          })
+          .then(text => {
+            console.log('Response text:', text);
+            try {
+              const data = JSON.parse(text);
+              console.log('Parsed response data:', data);
+              if (data.status === 'success') {
+                alert('Template saved successfully!');
+                // Close modal and reload templates
+                const modalElement = document.getElementById('taskTemplateModal_<%= @project_feature.id %>');
+                if (modalElement) {
+                  const modal = bootstrap.Modal.getInstance(modalElement);
+                  if (modal) {
+                    modal.hide();
+                  }
+                }
+                
+                setTimeout(() => {
+                  const chooseModal = document.getElementById('chooseTemplateModal_<%= @project_feature.id %>');
+                  if (chooseModal) {
+                    const chooseModalInstance = bootstrap.Modal.getInstance(chooseModal) || new bootstrap.Modal(chooseModal);
+                    chooseModalInstance.show();
+                    // Trigger template reload
+                    window.dispatchEvent(new CustomEvent('templates:reload'));
+                    // Also try direct reload
+                    if (window.templateSelectorController) {
+                      window.templateSelectorController.loadTemplates();
+                    }
+                  }
+                }, 300);
+              } else {
+                console.error('Save failed:', data);
+                alert('Error: ' + (data.errors || ['Failed to save template']).join(', '));
+              }
+            } catch (e) {
+              console.error('Failed to parse response:', e);
+              console.error('Response text was:', text);
+              alert('Error saving template. Check console for details.');
+            }
+          })
+          .catch(error => {
+            console.error('Fetch error:', error);
+            alert('An error occurred: ' + error.message);
+          });
+          };
+          
+          console.log('Global saveTemplate function registered for feature <%= @project_feature.id %>');
+          console.log('Function available:', typeof window.saveTemplate_<%= @project_feature.id %>);
+          
+          // Test: Try to find the button and verify it exists
+          setTimeout(() => {
+            const btn = document.getElementById('saveTemplateBtn_<%= @project_feature.id %>');
+            if (btn) {
+              console.log('✅ Save button found in DOM:', btn);
+              console.log('Button onclick attribute:', btn.getAttribute('onclick'));
+            } else {
+              console.error('❌ Save button NOT found in DOM!');
+            }
+          }, 1000);
+        })();
+      </script>
+    <% else %>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="taskTemplateModalLabel_<%= @project_feature.id %>">Create Task Template</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning">
+            Please set start and end dates for this feature before creating templates.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+

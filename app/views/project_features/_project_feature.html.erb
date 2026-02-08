@@ -15,6 +15,12 @@
         <strong>Project:</strong>
         <%= project_feature.project.name %>
       </p>
+      
+      <% if project_feature.overdue? %>
+        <div class="overdue-indicator mt-2" title="This feature's end date is overdue" data-bs-toggle="tooltip" data-bs-placement="top">
+          <i class="bi bi-exclamation-circle-fill text-danger"></i>
+        </div>
+      <% end %>
     </div>
   </div>
 <% end %>

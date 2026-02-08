@@ -1,0 +1,71 @@
+<div class="sidebar">
+  <!-- Logo Section -->
+  <div class="sidebar-logo">
+    <h2>Game Project Manager</h2>
+  </div>
+
+  <!-- Navigation Links -->
+  <nav class="sidebar-nav">
+    <ul class="nav-list">
+      <li class="nav-item">
+        <%= link_to dashboard_path, class: "nav-link #{'active' if current_page?(dashboard_path)}" do %>
+          <i class="bi bi-speedometer2"></i>
+          <span>Dashboard</span>
+        <% end %>
+      </li>
+      
+      <li class="nav-item">
+        <%= link_to profile_path, class: "nav-link #{'active' if current_page?(profile_path)}" do %>
+          <i class="bi bi-person"></i>
+          <span>Profile</span>
+        <% end %>
+      </li>
+      
+      <li class="nav-item">
+        <%= link_to projects_path, class: "nav-link #{'active' if current_page?(projects_path) || controller.controller_name == 'projects'}" do %>
+          <i class="bi bi-folder"></i>
+          <span>Projects</span>
+        <% end %>
+      </li>
+      
+      <li class="nav-item">
+        <%= link_to notifications_path, class: "nav-link #{'active' if current_page?(notifications_path)}" do %>
+          <i class="bi bi-bell"></i>
+          <span>Notifications</span>
+          <% if current_user.notifications.unviewed.any? %>
+            <span class="notification-badge"><%= current_user.notifications.unviewed.count %></span>
+          <% end %>
+        <% end %>
+      </li>
+      
+      <li class="nav-item">
+        <%= link_to users_path, class: "nav-link #{'active' if current_page?(users_path)}" do %>
+          <i class="bi bi-people"></i>
+          <span>Users</span>
+        <% end %>
+      </li>
+      
+      <li class="nav-item">
+        <%= link_to backlog_path, class: "nav-link #{'active' if current_page?(backlog_path)}" do %>
+          <i class="bi bi-list-ul"></i>
+          <span>Backlog</span>
+        <% end %>
+      </li>
+      
+      <li class="nav-item">
+        <%= link_to "#", class: "nav-link" do %>
+          <i class="bi bi-chat-dots"></i>
+          <span>Chat</span>
+        <% end %>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Logout Section -->
+  <div class="sidebar-footer">
+    <%= link_to destroy_user_session_path, data: {turbo_method: :delete}, class: "logout-link" do %>
+      <i class="bi bi-box-arrow-right"></i>
+      <span>Log out</span>
+    <% end %>
+  </div>
+</div>

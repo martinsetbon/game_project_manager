@@ -1,0 +1,307 @@
+<div class="new-dashboard">
+  <!-- Page Title -->
+  <div class="page-title">
+    <h1>Profile</h1>
+  </div>
+
+  <!-- Profile Layout - Two Equal Columns -->
+  <div class="profile-layout">
+    <!-- Personal Information Section -->
+    <div class="profile-section">
+      <div class="combined-section">
+        <h3>Personal Information</h3>
+        
+        <!-- Name -->
+        <div class="profile-field" data-controller="inline-edit" data-field="name">
+          <div class="field-display">
+            <div class="field-label">
+              <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+              <span>Name</span>
+            </div>
+            <div class="field-value"><%= @user.name || 'Not set' %></div>
+          </div>
+          <div class="field-edit" style="display: none;">
+            <input type="text" class="form-control" value="<%= @user.name %>" data-inline-edit-target="input">
+            <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+              <i class="bi bi-check"></i> Save
+            </button>
+            <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+              <i class="bi bi-x"></i> Cancel
+            </button>
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="profile-field" data-controller="inline-edit" data-field="email">
+          <div class="field-display">
+            <div class="field-label">
+              <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+              <span>Email</span>
+            </div>
+            <div class="field-value"><%= @user.email || 'Not set' %></div>
+          </div>
+          <div class="field-edit" style="display: none;">
+            <input type="email" class="form-control" value="<%= @user.email %>" data-inline-edit-target="input">
+            <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+              <i class="bi bi-check"></i> Save
+            </button>
+            <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+              <i class="bi bi-x"></i> Cancel
+            </button>
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="profile-field" data-controller="inline-edit" data-field="password">
+          <div class="field-display">
+            <div class="field-label">
+              <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+              <span>Password</span>
+            </div>
+            <div class="field-value">••••••••</div>
+          </div>
+          <div class="field-edit" style="display: none;">
+            <input type="password" class="form-control" placeholder="New password" data-inline-edit-target="input">
+            <input type="password" class="form-control mt-2" placeholder="Confirm password" data-inline-edit-target="confirmInput">
+            <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+              <i class="bi bi-check"></i> Save
+            </button>
+            <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+              <i class="bi bi-x"></i> Cancel
+            </button>
+          </div>
+        </div>
+
+        <!-- Country -->
+        <div class="profile-field" data-controller="inline-edit" data-field="country">
+          <div class="field-display">
+            <div class="field-label">
+              <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+              <span>Country</span>
+            </div>
+            <div class="field-value"><%= @user.country || 'Not set' %></div>
+          </div>
+          <div class="field-edit" style="display: none;">
+            <input type="text" class="form-control" value="<%= @user.country %>" data-inline-edit-target="input">
+            <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+              <i class="bi bi-check"></i> Save
+            </button>
+            <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+              <i class="bi bi-x"></i> Cancel
+            </button>
+          </div>
+        </div>
+
+        <!-- Photo/Avatar -->
+        <div class="profile-field profile-field-file" data-controller="inline-edit" data-field="avatar">
+          <div class="field-display">
+            <div class="field-label">
+              <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+              <span>Photo</span>
+            </div>
+            <div class="field-value">
+              <% if @user.avatar.attached? %>
+                <%= image_tag @user.avatar, class: "avatar-preview" %>
+              <% else %>
+                <div class="avatar-placeholder">
+                  <i class="bi bi-person-circle"></i>
+                  <span>No photo uploaded</span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+          <div class="field-edit" style="display: none;">
+            <%= form_with url: profile_path, method: :patch, local: false, multipart: true, data: { inline_edit_target: "form", turbo: false } do |f| %>
+              <%= hidden_field_tag :field, 'avatar' %>
+              <%= f.file_field :avatar, accept: "image/*", class: "form-control", data: { inline_edit_target: "fileInput" } %>
+              <button type="submit" class="btn btn-sm btn-primary save-btn">
+                <i class="bi bi-check"></i> Save
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+                <i class="bi bi-x"></i> Cancel
+              </button>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Self Introduction -->
+        <div class="profile-field" data-controller="inline-edit" data-field="self_introduction">
+          <div class="field-display">
+            <div class="field-label">
+              <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+              <span>Self Introduction</span>
+            </div>
+            <div class="field-value"><%= @user.self_introduction || 'Not set' %></div>
+          </div>
+          <div class="field-edit" style="display: none;">
+            <textarea class="form-control" rows="4" data-inline-edit-target="input"><%= @user.self_introduction %></textarea>
+            <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+              <i class="bi bi-check"></i> Save
+            </button>
+            <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+              <i class="bi bi-x"></i> Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Professional Information Section -->
+    <div class="profile-section">
+      <div class="combined-section">
+        <h3>Professional Information</h3>
+        
+        <!-- Title/Job -->
+        <div class="profile-field" data-controller="inline-edit" data-field="job">
+          <div class="field-display">
+            <div class="field-label">
+              <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+              <span>Title</span>
+            </div>
+            <div class="field-value"><%= @user.job || 'Not set' %></div>
+          </div>
+          <div class="field-edit" style="display: none;">
+            <input type="text" class="form-control" value="<%= @user.job %>" data-inline-edit-target="input">
+            <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+              <i class="bi bi-check"></i> Save
+            </button>
+            <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+              <i class="bi bi-x"></i> Cancel
+            </button>
+          </div>
+        </div>
+
+        <!-- Resume -->
+        <div class="profile-field profile-field-file" data-controller="inline-edit" data-field="resume">
+          <div class="field-display">
+            <div class="field-label">
+              <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+              <span>Resume</span>
+            </div>
+            <div class="field-value">
+              <% if @user.resume.attached? %>
+                <%= link_to @user.resume.filename.to_s, rails_blob_path(@user.resume, disposition: "attachment"), class: "resume-link" %>
+              <% else %>
+                <span>No resume uploaded</span>
+              <% end %>
+            </div>
+          </div>
+          <div class="field-edit" style="display: none;">
+            <%= form_with url: profile_path, method: :patch, local: false, multipart: true, data: { inline_edit_target: "form", turbo: false } do |f| %>
+              <%= hidden_field_tag :field, 'resume' %>
+              <%= f.file_field :resume, accept: ".pdf,.doc,.docx,.jpeg,.jpg", class: "form-control", data: { inline_edit_target: "fileInput" } %>
+              <small class="text-muted">Accepted formats: PDF, DOC, DOCX, JPEG, JPG</small>
+              <button type="submit" class="btn btn-sm btn-primary save-btn">
+                <i class="bi bi-check"></i> Save
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+                <i class="bi bi-x"></i> Cancel
+              </button>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Skills -->
+        <div class="profile-field profile-field-array" data-controller="inline-edit" data-field="skills">
+          <div class="field-display">
+            <div class="field-label">
+              <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+              <span>Skills</span>
+            </div>
+            <div class="field-value">
+              <% if @user.skills.present? && @user.skills.any? %>
+                <% @user.skills.each do |skill| %>
+                  <span class="badge skill-badge"><%= skill %></span>
+                <% end %>
+              <% else %>
+                <span>No skills added</span>
+              <% end %>
+            </div>
+          </div>
+          <div class="field-edit" style="display: none;">
+            <div class="skills-container" data-inline-edit-target="arrayContainer">
+              <% (@user.skills || []).each do |skill| %>
+                <div class="array-item">
+                  <input type="text" class="form-control" value="<%= skill %>" data-inline-edit-target="arrayInput">
+                  <button type="button" class="btn btn-sm btn-danger remove-item" data-action="click->inline-edit#removeArrayItem">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              <% end %>
+            </div>
+            <button type="button" class="btn btn-sm btn-link add-item-btn" data-action="click->inline-edit#addArrayItem">
+              <i class="bi bi-plus-circle"></i> Add another skill
+            </button>
+            <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#saveArray">
+              <i class="bi bi-check"></i> Save
+            </button>
+            <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+              <i class="bi bi-x"></i> Cancel
+            </button>
+          </div>
+        </div>
+
+        <!-- Speaking Languages -->
+        <div class="profile-field profile-field-array" data-controller="inline-edit" data-field="speaking_languages">
+          <div class="field-display">
+            <div class="field-label">
+              <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+              <span>Speaking Languages</span>
+            </div>
+            <div class="field-value">
+              <% if @user.speaking_languages.present? && @user.speaking_languages.any? %>
+                <% @user.speaking_languages.each do |lang| %>
+                  <span class="badge language-badge"><%= lang %></span>
+                <% end %>
+              <% else %>
+                <span>No languages added</span>
+              <% end %>
+            </div>
+          </div>
+          <div class="field-edit" style="display: none;">
+            <div class="languages-container" data-inline-edit-target="arrayContainer">
+              <% (@user.speaking_languages || []).each do |lang| %>
+                <div class="array-item">
+                  <input type="text" class="form-control" value="<%= lang %>" data-inline-edit-target="arrayInput">
+                  <button type="button" class="btn btn-sm btn-danger remove-item" data-action="click->inline-edit#removeArrayItem">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              <% end %>
+            </div>
+            <button type="button" class="btn btn-sm btn-link add-item-btn" data-action="click->inline-edit#addArrayItem">
+              <i class="bi bi-plus-circle"></i> Add another language
+            </button>
+            <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#saveArray">
+              <i class="bi bi-check"></i> Save
+            </button>
+            <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+              <i class="bi bi-x"></i> Cancel
+            </button>
+          </div>
+        </div>
+
+        <!-- Hobbies -->
+        <div class="profile-field" data-controller="inline-edit" data-field="hobbies">
+          <div class="field-display">
+            <div class="field-label">
+              <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+              <span>Hobbies</span>
+            </div>
+            <div class="field-value"><%= @user.hobbies || 'Not set' %></div>
+          </div>
+          <div class="field-edit" style="display: none;">
+            <textarea class="form-control" rows="4" data-inline-edit-target="input"><%= @user.hobbies %></textarea>
+            <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+              <i class="bi bi-check"></i> Save
+            </button>
+            <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+              <i class="bi bi-x"></i> Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

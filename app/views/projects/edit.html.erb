@@ -24,9 +24,9 @@
   <div class="form-group">
     <%= label_tag "Add Contributors" %>
     <%= select_tag "project[contributor_ids][]", options_from_collection_for_select(
-        @users.where(available: true).where.not(id: @project.contributor_ids),
+        @users.where.not(id: @project.contributor_ids),
         :id,
-        ->(u) { "#{u.name} - #{u.job} (Available)" }
+        ->(u) { "#{u.name} - #{u.job}" }
       ),
       include_blank: "Select a contributor to add",
       class: "form-control" %>

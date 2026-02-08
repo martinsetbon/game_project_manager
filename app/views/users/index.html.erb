@@ -1,0 +1,198 @@
+<div class="new-dashboard">
+  <!-- Page Title -->
+  <div class="page-title">
+    <h1>Users</h1>
+  </div>
+
+  <!-- Users Layout - Two Columns -->
+  <div class="users-layout">
+    <!-- User Search Section -->
+    <div class="users-section">
+      <div class="combined-section">
+        <h3>User Search</h3>
+        
+        <!-- Search Form -->
+        <%= form_with url: users_path, method: :get, local: true, class: "user-search-form" do |f| %>
+          <!-- Search Bar -->
+          <div class="search-input-group">
+            <i class="bi bi-search search-icon"></i>
+            <%= text_field_tag :search, params[:search], 
+                placeholder: "Search by name or email...", 
+                class: "form-control search-input" %>
+          </div>
+          
+          <!-- Filters -->
+          <div class="filters-group">
+            <div class="filter-item">
+              <label>Title</label>
+              <%= select_tag :title, 
+                  options_for_select([['All Titles', '']] + @titles.map { |t| [t, t] }, params[:title]),
+                  class: "form-control filter-select" %>
+            </div>
+            
+            <div class="filter-item">
+              <label>Country</label>
+              <%= select_tag :country, 
+                  options_for_select([['All Countries', '']] + @countries.map { |c| [c, c] }, params[:country]),
+                  class: "form-control filter-select" %>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <%= submit_tag "Search", class: "btn btn-primary search-btn" %>
+            <%= link_to "Clear", users_path, class: "btn btn-secondary clear-btn" %>
+          </div>
+        <% end %>
+        
+        <!-- Search Results -->
+        <div class="search-results">
+          <% if @has_search %>
+            <% if @users.any? %>
+              <div class="results-count">
+                Found <%= @users.count %> user(s)
+              </div>
+              <div class="users-list">
+                <% @users.each do |user| %>
+                  <div class="user-result-card">
+                    <div class="user-result-avatar">
+                      <% if user.avatar.attached? %>
+                        <%= image_tag user.avatar, class: "avatar-small" %>
+                      <% else %>
+                        <div class="avatar-placeholder-small">
+                          <i class="bi bi-person-circle"></i>
+                        </div>
+                      <% end %>
+                    </div>
+                    <div class="user-result-info">
+                      <div class="user-result-name"><%= user.name %></div>
+                      <div class="user-result-details">
+                        <% if user.job.present? %>
+                          <span class="user-detail-item"><i class="bi bi-briefcase"></i> <%= user.job %></span>
+                        <% end %>
+                        <% if user.country.present? %>
+                          <span class="user-detail-item"><i class="bi bi-globe"></i> <%= user.country %></span>
+                        <% end %>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% else %>
+              <div class="no-results">
+                <p>No users found</p>
+              </div>
+            <% end %>
+          <% else %>
+            <div class="no-results">
+              <p>Enter a search term or select filters to find users</p>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Friends Section -->
+    <div class="users-section">
+      <div class="combined-section">
+        <h3>Friends</h3>
+        
+        <!-- Current User Info -->
+        <div class="current-user-info">
+          <div class="current-user-avatar">
+            <% if current_user.avatar.attached? %>
+              <%= image_tag current_user.avatar, class: "avatar-medium" %>
+            <% else %>
+              <div class="avatar-placeholder-medium">
+                <i class="bi bi-person-circle"></i>
+              </div>
+            <% end %>
+          </div>
+          <div class="current-user-name"><%= current_user.name %></div>
+        </div>
+        
+        <!-- Friends Search -->
+        <%= form_with url: users_path, method: :get, local: true, class: "friend-search-form" do |f| %>
+          <%= hidden_field_tag :search, params[:search] %>
+          <%= hidden_field_tag :title, params[:title] %>
+          <%= hidden_field_tag :country, params[:country] %>
+          <div class="search-input-group">
+            <i class="bi bi-search search-icon"></i>
+            <%= text_field_tag :friend_search, params[:friend_search], 
+                placeholder: "Search friends...", 
+                class: "form-control search-input" %>
+            <%= submit_tag "Search", class: "btn btn-sm btn-primary", style: "display: none;" %>
+          </div>
+        <% end %>
+        
+        <!-- Online Friends -->
+        <% if @online_friends.any? %>
+          <div class="friends-section">
+            <div class="friends-section-header">
+              <h4>Online (<%= @online_friends.count %>)</h4>
+            </div>
+            <div class="friends-list">
+              <% @online_friends.each do |friend| %>
+                <div class="friend-card online">
+                  <div class="friend-avatar">
+                    <% if friend.avatar.attached? %>
+                      <%= image_tag friend.avatar, class: "avatar-small" %>
+                    <% else %>
+                      <div class="avatar-placeholder-small">
+                        <i class="bi bi-person-circle"></i>
+                      </div>
+                    <% end %>
+                    <div class="online-indicator"></div>
+                  </div>
+                  <div class="friend-info">
+                    <div class="friend-name"><%= friend.name %></div>
+                    <% if friend.job.present? %>
+                      <div class="friend-title"><%= friend.job %></div>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+        
+        <!-- Offline Friends -->
+        <% if @offline_friends.any? %>
+          <div class="friends-section">
+            <div class="friends-section-header">
+              <h4>Offline (<%= @offline_friends.count %>)</h4>
+            </div>
+            <div class="friends-list">
+              <% @offline_friends.each do |friend| %>
+                <div class="friend-card offline">
+                  <div class="friend-avatar">
+                    <% if friend.avatar.attached? %>
+                      <%= image_tag friend.avatar, class: "avatar-small" %>
+                    <% else %>
+                      <div class="avatar-placeholder-small">
+                        <i class="bi bi-person-circle"></i>
+                      </div>
+                    <% end %>
+                  </div>
+                  <div class="friend-info">
+                    <div class="friend-name"><%= friend.name %></div>
+                    <% if friend.job.present? %>
+                      <div class="friend-title"><%= friend.job %></div>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+        
+        <!-- No Friends -->
+        <% if @friends.empty? %>
+          <div class="no-friends">
+            <p>No friends yet. Start working on projects together to add friends!</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+

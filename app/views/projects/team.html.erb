@@ -19,7 +19,7 @@
     <h4>Add Contributor</h4>
     <% assigned_user_ids = @project.project_contributors.pluck(:user_id) %>
     <%= select_tag :user_id,
-          options_from_collection_for_select(User.where(available: true).where.not(id: assigned_user_ids), :id, :name),
+          options_from_collection_for_select(User.where.not(id: [@project.user_id] + assigned_user_ids), :id, ->(u) { "#{u.name} - #{u.job}" }),
           prompt: "Select user",
           class: "form-select mb-2" %>
     <%= submit_tag "Add", class: "btn btn-primary" %>

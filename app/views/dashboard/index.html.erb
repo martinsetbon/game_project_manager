@@ -1,0 +1,345 @@
+<div class="new-dashboard" 
+     data-controller="dashboard-drag-drop"
+     data-dashboard-drag-drop-move-task-url-value="<%= dashboard_move_task_to_backlog_path rescue '/dashboard/move_task_to_backlog' %>">
+  <!-- Page Title -->
+  <div class="page-title">
+    <h1>Dashboard</h1>
+  </div>
+
+  <!-- Activities Stats -->
+  <div class="activities-stats">
+    <h3>Activities Stats</h3>
+    <div class="stats-grid">
+      <div class="stat-item">
+        <span class="stat-label">Active:</span>
+        <span class="stat-value"><%= @active_features_count %></span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Pending:</span>
+        <span class="stat-value"><%= @pending_requests_count %></span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Overdue:</span>
+        <span class="stat-value"><%= @overdue_features_count %></span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Upcoming:</span>
+        <span class="stat-value"><%= @upcoming_features_count %></span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">News:</span>
+        <span class="stat-value"><%= @news_count %></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Two Column Layout -->
+  <div class="dashboard-two-columns">
+    <!-- Column 1: Current Tasks -->
+    <div class="dashboard-column current-tasks-column">
+      <h3 class="column-title">
+        <i class="bi bi-exclamation-circle"></i>
+        Current Tasks
+      </h3>
+      
+      <div class="tasks-list">
+        <% if @current_tasks.any? %>
+          <% @current_tasks.each do |task| %>
+            <div class="task-item <%= 'task-item-overdue' if task[:type] == 'overdue_feature' %>" 
+                 data-controller="expandable"
+                 data-task-type="feature"
+                 data-feature-id="<%= task[:feature].id %>"
+                 data-task-name="<%= task[:feature].name %>"
+                 draggable="true">
+              <div class="task-header" data-action="click->expandable#toggle">
+                <div class="task-content">
+                  <div class="task-main-info">
+                    <% case task[:type] %>
+                    <% when 'approval_request' %>
+                      <span class="task-icon"><i class="bi bi-check-circle"></i></span>
+                      <span class="task-name">Approval: <%= task[:feature].name %></span>
+                    <% when 'overdue_feature' %>
+                      <span class="task-icon"><i class="bi bi-exclamation-triangle"></i></span>
+                      <span class="task-name"><%= task[:feature].name %></span>
+                    <% when 'ending_soon' %>
+                      <span class="task-icon"><i class="bi bi-clock"></i></span>
+                      <span class="task-name"><%= task[:feature].name %></span>
+                    <% when 'checkpoint' %>
+                      <span class="task-icon"><i class="bi bi-flag"></i></span>
+                      <span class="task-name">Check: <%= task[:feature].name %></span>
+                    <% end %>
+                    <% if task[:warning] %>
+                      <span class="warning-chip warning-<%= task[:priority] %>">
+                        <%= task[:warning] %>
+                      </span>
+                    <% end %>
+                  </div>
+                  <div class="task-meta">
+                    <% project_name = task[:feature]&.project&.name %>
+                    <% if project_name %>
+                      <span class="task-project">from <%= project_name %></span>
+                    <% end %>
+                  </div>
+                </div>
+                <i class="bi bi-chevron-down expand-icon"></i>
+              </div>
+              <div class="task-details" data-expandable-target="content">
+                <% case task[:type] %>
+                <% when 'approval_request' %>
+                  <div class="task-detail-content">
+                    <p><%= task[:assignment].user.name %> requested approval for this feature.</p>
+                    <%= link_to "View Feature", project_project_feature_path(task[:feature].project, task[:feature]), class: "btn btn-primary btn-sm" %>
+                  </div>
+                <% when 'overdue_feature', 'ending_soon' %>
+                  <div class="task-detail-content">
+                    <div class="feature-card">
+                      <%= render 'shared/feature_card', feature: task[:feature] %>
+                    </div>
+                    <%= link_to "View Feature", project_project_feature_path(task[:feature].project, task[:feature]), class: "btn btn-primary btn-sm" %>
+                  </div>
+                <% when 'checkpoint' %>
+                  <div class="task-detail-content">
+                    <p>Checkpoint scheduled for day <%= task[:checkpoint].day %> of feature.</p>
+                    <p><strong>Date:</strong> <%= task[:checkpoint_date].strftime("%B %d, %Y") %></p>
+                    <%= link_to "View Feature", project_project_feature_path(task[:feature].project, task[:feature]), class: "btn btn-primary btn-sm" %>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="empty-state">
+            <p>No current tasks. You're all caught up! 🎉</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Column 2: Incoming Tasks -->
+    <div class="dashboard-column incoming-tasks-column">
+      <h3 class="column-title">
+        <i class="bi bi-calendar-event"></i>
+        Incoming Tasks
+      </h3>
+      
+      <div class="tasks-list">
+        <% if @incoming_tasks.any? %>
+          <% @incoming_tasks.each do |task| %>
+            <div class="task-item" 
+                 data-controller="expandable"
+                 data-task-type="feature"
+                 data-feature-id="<%= task[:feature].id %>"
+                 data-task-name="<%= task[:feature].name %>"
+                 draggable="true">
+              <div class="task-header" data-action="click->expandable#toggle">
+                <div class="task-content">
+                  <div class="task-main-info">
+                    <% case task[:type] %>
+                    <% when 'upcoming_feature' %>
+                      <span class="task-icon"><i class="bi bi-calendar-plus"></i></span>
+                      <span class="task-name"><%= task[:feature].name %></span>
+                      <span class="task-date"><%= task[:start_date].strftime("%b %d") %></span>
+                    <% when 'checkpoint' %>
+                      <span class="task-icon"><i class="bi bi-flag"></i></span>
+                      <span class="task-name">Check: <%= task[:feature].name %></span>
+                      <span class="task-date"><%= task[:checkpoint_date].strftime("%b %d") %></span>
+                    <% end %>
+                    <% if task[:warning] %>
+                      <span class="warning-chip warning-<%= task[:priority] %>">
+                        <%= task[:warning] %>
+                      </span>
+                    <% end %>
+                  </div>
+                  <div class="task-meta">
+                    <% project_name = task[:feature]&.project&.name %>
+                    <% if project_name %>
+                      <span class="task-project">from <%= project_name %></span>
+                    <% end %>
+                  </div>
+                </div>
+                <i class="bi bi-chevron-down expand-icon"></i>
+              </div>
+              <div class="task-details" data-expandable-target="content">
+                <% case task[:type] %>
+                <% when 'upcoming_feature' %>
+                  <div class="task-detail-content">
+                    <p><strong>Starts:</strong> <%= task[:start_date].strftime("%B %d, %Y") %></p>
+                    <% if task[:feature].end_date %>
+                      <p><strong>Ends:</strong> <%= task[:feature].end_date.strftime("%B %d, %Y") %></p>
+                    <% end %>
+                    <div class="feature-card">
+                      <%= render 'shared/feature_card', feature: task[:feature] %>
+                    </div>
+                    <%= link_to "View Feature", project_project_feature_path(task[:feature].project, task[:feature]), class: "btn btn-primary btn-sm" %>
+                  </div>
+                <% when 'checkpoint' %>
+                  <div class="task-detail-content">
+                    <p>Checkpoint scheduled for day <%= task[:checkpoint].day %> of feature.</p>
+                    <p><strong>Date:</strong> <%= task[:checkpoint_date].strftime("%B %d, %Y") %></p>
+                    <%= link_to "View Feature", project_project_feature_path(task[:feature].project, task[:feature]), class: "btn btn-primary btn-sm" %>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="empty-state">
+            <p>No incoming tasks scheduled.</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backlog Tasks Section -->
+  <div class="backlog-tasks-section" data-controller="task-filters" data-task-filters-target="container" data-dashboard-drag-drop-target="backlogDropZone">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h3 class="section-title">
+        <i class="bi bi-list-task"></i>
+        Backlog Tasks
+      </h3>
+      
+      <!-- Filters -->
+      <div class="task-filters">
+        <button class="filter-btn active" data-filter="all" data-action="click->task-filters#filter">
+          All
+        </button>
+        <button class="filter-btn" data-filter="backlog-only" data-action="click->task-filters#filter">
+          Backlog Only
+        </button>
+        <button class="filter-btn" data-filter="no-backlog" data-action="click->task-filters#filter">
+          Hide Backlog
+        </button>
+        <button class="filter-btn" data-filter="priority-high" data-action="click->task-filters#filter">
+          High Priority
+        </button>
+        <button class="filter-btn" data-filter="priority-medium" data-action="click->task-filters#filter">
+          Medium Priority
+        </button>
+        <button class="filter-btn" data-filter="priority-low" data-action="click->task-filters#filter">
+          Low Priority
+        </button>
+      </div>
+    </div>
+    
+    <div class="tasks-list" data-task-filters-target="list">
+      <% if @backlog_tasks.any? %>
+        <% @backlog_tasks.each do |task_data| %>
+          <% task = task_data[:task] %>
+          <div class="task-item backlog-task-item 
+                      priority-<%= task.priority || 'none' %> 
+                      status-<%= task.status %> 
+                      <%= 'task-backlog' if task.in_backlog? %>" 
+               data-priority="<%= task.priority || 'none' %>"
+               data-status="<%= task.status %>"
+               data-backlog="<%= task.in_backlog? %>"
+               data-controller="expandable">
+            <div class="task-header" data-action="click->expandable#toggle">
+              <div class="task-content">
+                <div class="task-main-info">
+                  <span class="task-icon"><i class="bi bi-list-task"></i></span>
+                  <span class="task-name status-<%= task.status %>"><%= task.name %></span>
+                  <% if task.priority %>
+                    <span class="priority-badge priority-<%= task.priority %>">
+                      <%= task.priority.humanize %>
+                    </span>
+                  <% end %>
+                  <% if task.in_backlog? %>
+                    <span class="backlog-indicator" title="This task is in the backlog">
+                      <i class="bi bi-inbox"></i>
+                    </span>
+                  <% end %>
+                </div>
+                <div class="task-meta">
+                  <% if task.project %>
+                    <span class="task-project">from <%= task.project.name %></span>
+                  <% end %>
+                  <% if task.responsible_users.any? %>
+                    <span class="task-assignee">
+                      Responsible: <%= task.responsible_users.map(&:name).join(', ') %>
+                    </span>
+                  <% end %>
+                  <% if task.created_at %>
+                    <span class="task-date">Added <%= time_ago_in_words(task.created_at) %> ago</span>
+                  <% end %>
+                </div>
+              </div>
+              <i class="bi bi-chevron-down expand-icon"></i>
+            </div>
+            <div class="task-details" data-expandable-target="content">
+              <div class="task-detail-content">
+                <% if task.description.present? %>
+                  <p><strong>Description:</strong> <%= task.description %></p>
+                <% end %>
+                <p><strong>Status:</strong> <%= task.status.humanize %></p>
+                <% if task.department %>
+                  <p><strong>Department:</strong> <%= task.department %></p>
+                <% end %>
+                <% if task.project %>
+                  <%= link_to "View Project", project_path(task.project), class: "btn btn-primary btn-sm" %>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      <% else %>
+        <div class="empty-state">
+          <p>No backlog tasks.</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Collapsible Activity History - Small Side Panel -->
+  <div class="activity-history-sidebar" data-controller="expandable">
+    <div class="activity-history-toggle" data-action="click->expandable#toggle">
+      <i class="bi bi-clock-history"></i>
+      <span class="toggle-text">History</span>
+      <i class="bi bi-chevron-left expand-icon"></i>
+    </div>
+    <div class="activity-history-panel" data-expandable-target="content" data-flex-display="true">
+      <div class="activity-history-panel-header">
+        <h3>
+          <i class="bi bi-clock-history"></i>
+          Activity History
+        </h3>
+        <button class="close-history-btn" data-action="click->expandable#toggle" aria-label="Close history">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+      <div class="activity-history-panel-content">
+        <!-- Search Box -->
+        <div class="search-box">
+          <input type="text" placeholder="Search activities..." class="search-input">
+          <i class="bi bi-search search-icon"></i>
+        </div>
+
+        <!-- Activity List -->
+        <div class="activity-list">
+          <% if @activity_history.any? %>
+            <% @activity_history.each do |activity| %>
+              <div class="expandable-item" data-controller="expandable">
+                <div class="item-header" data-action="click->expandable#toggle">
+                  <div class="item-content">
+                    <span class="item-name"><%= activity.description %></span>
+                  </div>
+                  <i class="bi bi-chevron-down expand-icon"></i>
+                </div>
+                <div class="item-details" data-expandable-target="content">
+                  <div class="activity-details">
+                    <div class="activity-item">• <%= activity.details %></div>
+                    <div class="activity-time"><%= time_ago_in_words(activity.created_at) %> ago</div>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          <% else %>
+            <div class="empty-state">
+              <p>No activity history available.</p>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,25 @@
+<div class="feature-card-content">
+  <div class="feature-header">
+    <h6 class="feature-name"><%= feature.name %></h6>
+    <span class="feature-status status-<%= feature.status %>">
+      <%= feature.status.humanize %>
+    </span>
+  </div>
+  
+  <div class="feature-details">
+    <div class="feature-info">
+      <span class="feature-duration"><%= feature.duration %> days</span>
+    </div>
+    
+    <div class="feature-dates">
+      <span class="start-date">Start: <%= feature.start_date.strftime("%b %d") %></span>
+      <span class="end-date">End: <%= feature.end_date.strftime("%b %d") %></span>
+    </div>
+  </div>
+  
+  <% if feature.respond_to?(:description) && feature.description.present? %>
+    <div class="feature-description">
+      <%= truncate(feature.description, length: 100) %>
+    </div>
+  <% end %>
+</div>

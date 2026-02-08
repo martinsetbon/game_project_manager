@@ -1,0 +1,182 @@
+<div class="new-dashboard">
+  <!-- Page Title -->
+  <div class="page-title">
+    <h1>Backlog</h1>
+  </div>
+
+  <!-- Two Column Layout -->
+  <div class="dashboard-two-columns">
+    <!-- Column 1: User Backlog -->
+    <div class="dashboard-column user-backlog-column">
+      <h3 class="column-title">
+        <i class="bi bi-person"></i>
+        My Backlog
+        <span class="task-count-badge"><%= @user_backlog_tasks.count %></span>
+      </h3>
+      
+      <div class="tasks-list">
+        <% if @user_backlog_tasks.any? %>
+          <% @user_backlog_tasks.each do |task| %>
+            <div class="task-item backlog-task-item" data-controller="expandable">
+              <div class="task-header" data-action="click->expandable#toggle">
+                <div class="task-content">
+                  <div class="task-main-info">
+                    <span class="task-icon"><i class="bi bi-list-task"></i></span>
+                    <span class="task-name"><%= task.name %></span>
+                    <% if task.department %>
+                      <span class="department-chip"><%= task.department %></span>
+                    <% end %>
+                    <% if task.status %>
+                      <span class="status-chip status-<%= task.status %>">
+                        <%= task.status.humanize %>
+                      </span>
+                    <% end %>
+                  </div>
+                  <div class="task-meta">
+                    <% if task.description.present? %>
+                      <span class="task-description-preview"><%= truncate(task.description, length: 60) %></span>
+                    <% end %>
+                    <% if task.created_at %>
+                      <span class="task-date">Added <%= time_ago_in_words(task.created_at) %> ago</span>
+                    <% end %>
+                  </div>
+                </div>
+                <i class="bi bi-chevron-down expand-icon"></i>
+              </div>
+              <div class="task-details" data-expandable-target="content">
+                <div class="task-detail-content">
+                  <% if task.description.present? %>
+                    <div class="task-description">
+                      <strong>Description:</strong>
+                      <p><%= simple_format(task.description) %></p>
+                    </div>
+                  <% end %>
+                  <div class="task-info-grid">
+                    <% if task.department %>
+                      <div class="info-item">
+                        <strong>Department:</strong> <%= task.department %>
+                      </div>
+                    <% end %>
+                    <% if task.status %>
+                      <div class="info-item">
+                        <strong>Status:</strong> <%= task.status.humanize %>
+                      </div>
+                    <% end %>
+                    <% if task.duration %>
+                      <div class="info-item">
+                        <strong>Duration:</strong> <%= task.duration %> day<%= 's' if task.duration != 1 %>
+                      </div>
+                    <% end %>
+                    <% if task.assigned_user %>
+                      <div class="info-item">
+                        <strong>Assigned to:</strong> <%= task.assigned_user.name %>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="empty-state">
+            <p>Your backlog is empty. Add tasks here for later!</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Column 2: Project Backlog -->
+    <div class="dashboard-column project-backlog-column">
+      <h3 class="column-title">
+        <i class="bi bi-folder"></i>
+        Project Backlog
+      </h3>
+      
+      <div class="tasks-list">
+        <% if @project_backlog_tasks.any? %>
+          <% @project_backlog_tasks.each do |project_id, data| %>
+            <% project = data[:project] %>
+            <% tasks = data[:tasks] %>
+            
+            <% if tasks.any? %>
+              <div class="project-backlog-section">
+                <h4 class="project-backlog-title">
+                  <i class="bi bi-folder-fill"></i>
+                  <%= project.name %>
+                  <span class="task-count-badge"><%= tasks.count %></span>
+                </h4>
+                
+                <% tasks.each do |task| %>
+                  <div class="task-item backlog-task-item project-backlog-task" data-controller="expandable">
+                    <div class="task-header" data-action="click->expandable#toggle">
+                      <div class="task-content">
+                        <div class="task-main-info">
+                          <span class="task-icon"><i class="bi bi-list-task"></i></span>
+                          <span class="task-name"><%= task.name %></span>
+                          <% if task.department %>
+                            <span class="department-chip"><%= task.department %></span>
+                          <% end %>
+                          <% if task.status %>
+                            <span class="status-chip status-<%= task.status %>">
+                              <%= task.status.humanize %>
+                            </span>
+                          <% end %>
+                        </div>
+                        <div class="task-meta">
+                          <% if task.description.present? %>
+                            <span class="task-description-preview"><%= truncate(task.description, length: 60) %></span>
+                          <% end %>
+                          <% if task.created_at %>
+                            <span class="task-date">Added <%= time_ago_in_words(task.created_at) %> ago</span>
+                          <% end %>
+                        </div>
+                      </div>
+                      <i class="bi bi-chevron-down expand-icon"></i>
+                    </div>
+                    <div class="task-details" data-expandable-target="content">
+                      <div class="task-detail-content">
+                        <% if task.description.present? %>
+                          <div class="task-description">
+                            <strong>Description:</strong>
+                            <p><%= simple_format(task.description) %></p>
+                          </div>
+                        <% end %>
+                        <div class="task-info-grid">
+                          <% if task.department %>
+                            <div class="info-item">
+                              <strong>Department:</strong> <%= task.department %>
+                            </div>
+                          <% end %>
+                          <% if task.status %>
+                            <div class="info-item">
+                              <strong>Status:</strong> <%= task.status.humanize %>
+                            </div>
+                          <% end %>
+                          <% if task.duration %>
+                            <div class="info-item">
+                              <strong>Duration:</strong> <%= task.duration %> day<%= 's' if task.duration != 1 %>
+                            </div>
+                          <% end %>
+                          <% if task.assigned_user %>
+                            <div class="info-item">
+                              <strong>Assigned to:</strong> <%= task.assigned_user.name %>
+                            </div>
+                          <% end %>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          <% end %>
+        <% else %>
+          <div class="empty-state">
+            <p>No project backlog tasks. Only project creators can add tasks to project backlog.</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+

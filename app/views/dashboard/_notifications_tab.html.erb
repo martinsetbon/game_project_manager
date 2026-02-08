@@ -1,0 +1,80 @@
+<div class="panel-header">
+  <h2>Notifications</h2>
+</div>
+
+<% if notifications&.any? %>
+  <div class="notifications-list">
+    <% notifications.each do |notification| %>
+      <% if notification.project %>
+        <%= link_to project_path(notification.project), class: "notification-card-link", 
+                    data: { action: "click->notification-click#markAsViewed", 
+                            notification_id: notification.id } do %>
+          <div class="notification-item <%= notification.priority %> <%= 'unread' unless notification.read %> <%= 'unviewed' unless notification.viewed %>" 
+               data-notification-id="<%= notification.id %>"
+               data-controller="notification-click"
+               data-action="click->notification-click#markAsViewed"
+               data-project-url="<%= project_path(notification.project) %>">
+            <div class="notification-icon">
+              <% case notification.notification_type %>
+              <% when 'feature_assigned' %>
+                <i class="bi bi-person-plus"></i>
+              <% when 'feature_overdue', 'accountable_overdue' %>
+                <i class="bi bi-exclamation-triangle"></i>
+              <% when 'approval_requested' %>
+                <i class="bi bi-check-circle"></i>
+              <% end %>
+            </div>
+            <div class="notification-content">
+              <h4 class="notification-title <%= 'font-weight-bold' unless notification.viewed %>"><%= notification.title %></h4>
+              <p class="notification-message <%= 'font-weight-bold' unless notification.viewed %>"><%= notification.message %></p>
+              <div class="notification-meta">
+                <span class="notification-time"><%= time_ago_in_words(notification.created_at) %> ago</span>
+                <span class="notification-project-name"><%= notification.project.name %></span>
+                <% unless notification.read %>
+                  <span class="unread-indicator">•</span>
+                <% end %>
+                <% unless notification.viewed %>
+                  <span class="unviewed-indicator">●</span>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      <% else %>
+        <div class="notification-item <%= notification.priority %> <%= 'unread' unless notification.read %> <%= 'unviewed' unless notification.viewed %>" 
+             data-notification-id="<%= notification.id %>"
+             data-controller="notification-click">
+          <div class="notification-icon">
+            <% case notification.notification_type %>
+            <% when 'feature_assigned' %>
+              <i class="bi bi-person-plus"></i>
+            <% when 'feature_overdue', 'accountable_overdue' %>
+              <i class="bi bi-exclamation-triangle"></i>
+            <% when 'approval_requested' %>
+              <i class="bi bi-check-circle"></i>
+            <% end %>
+          </div>
+          <div class="notification-content">
+            <h4 class="notification-title <%= 'font-weight-bold' unless notification.viewed %>"><%= notification.title %></h4>
+            <p class="notification-message <%= 'font-weight-bold' unless notification.viewed %>"><%= notification.message %></p>
+            <div class="notification-meta">
+              <span class="notification-time"><%= time_ago_in_words(notification.created_at) %> ago</span>
+              <% unless notification.read %>
+                <span class="unread-indicator">•</span>
+              <% end %>
+              <% unless notification.viewed %>
+                <span class="unviewed-indicator">●</span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+<% else %>
+  <div class="empty-state">
+    <i class="bi bi-bell-slash"></i>
+    <h3>No notifications</h3>
+    <p>You're all caught up! New notifications will appear here.</p>
+  </div>
+<% end %>

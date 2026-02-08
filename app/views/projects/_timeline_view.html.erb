@@ -1,138 +1,111 @@
-<div class="timeline-container" data-controller="timeline"
-  data-day-start="<%= Date.today %>"
-  data-month-start="<%= Date.today.beginning_of_month %>"
-  data-year-start="<%= Date.today.beginning_of_year %>">
+<div class="timeline-container" data-controller="timeline" 
+     data-timeline-project-id-value="<%= project.id %>"
+     data-timeline-current-year-value="2025"
+     data-timeline-current-month-value="1">
+  
+  <!-- Timeline Header -->
   <div class="timeline-header">
-    <h4 class="text-center mb-3"><%= project.name %> Timeline</h4>
+    <div class="timeline-title-section">
+      <h3 class="timeline-title">Project Timeline</h3>
+      <span class="timeline-zoom-indicator" data-timeline-target="zoomIndicator">Year View</span>
+    </div>
     
-    <!-- Timeline Controls -->
-    <div class="timeline-controls mb-3 d-flex justify-content-center gap-3">
-      <div class="zoom-controls btn-group">
-        <button class="btn btn-outline-secondary btn-sm" data-action="timeline#zoom" data-zoom="day">Day View</button>
-        <button class="btn btn-outline-secondary btn-sm" data-action="timeline#zoom" data-zoom="month">Month View</button>
-        <button class="btn btn-outline-secondary btn-sm" data-action="timeline#zoom" data-zoom="year">Year View</button>
-      </div>
+    <!-- Navigation Controls -->
+    <div class="timeline-navigation">
+      <button class="btn btn-outline-secondary btn-sm" data-action="timeline#previousYear">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      
+      <h4 class="timeline-period" data-timeline-target="periodTitle" data-action="click->timeline#zoomToYear">
+        2025
+      </h4>
+      
+      <button class="btn btn-outline-secondary btn-sm" data-action="timeline#nextYear">
+        <i class="bi bi-chevron-right"></i>
+      </button>
     </div>
   </div>
-  
-  <div class="timeline-grid" data-timeline-target="grid">
-    <!-- Contributor labels (Y-axis) -->
-    <div class="contributor-labels">
-      <div class="contributor-label header-cell">Responsible Contributors</div>
-      <% 
-        # Get all unique responsible contributors from project features
-        responsible_contributors = project.project_features.joins(:responsible_assignments)
-                                          .includes(:responsible_assignments, :responsible_contributors)
-                                          .map(&:responsible_contributors)
-                                          .flatten
-                                          .uniq
-        
-        # Add features without responsible contributors to "Unassigned" group
-        unassigned_features = project.project_features.left_joins(:responsible_assignments)
-                                     .where(feature_assignments: { id: nil })
-        
-        all_contributors = responsible_contributors + (unassigned_features.any? ? [nil] : [])
-      %>
-      <% all_contributors.each do |contributor| %>
-        <% 
-          if contributor.nil?
-            features = unassigned_features
-            contributor_name = "Unassigned"
-            contributor_id = "unassigned"
-          else
-            features = project.project_features.joins(:responsible_assignments)
-                              .where(feature_assignments: { user_id: contributor.id, role: 'responsible' })
-            contributor_name = contributor.name || contributor.email
-            contributor_id = contributor.id
-          end
-        %>
-        <div class="contributor-label" data-contributor="<%= contributor_id %>" style="height: 60px">
-          <span><%= contributor_name %></span>
-        </div>
-      <% end %>
-    </div>
 
-    <!-- Time labels and grid (X-axis) -->
-    <div class="timeline-content">
-      <!-- Time headers -->
-      <div class="time-headers" data-timeline-target="timeHeaders">
-        <%
-          zoom = params[:zoom] || 'day'
-          case zoom
-          when 'year'
-            start_date = Date.new(2025, 1, 1)
-          when 'month'
-            start_date = Date.new(2025, 1, 1).beginning_of_month
-          else
-            start_date = Date.new(2025, 1, 1)
-          end
-          end_date = project.end_date || (start_date + 5.years)
-          total_days = (end_date - start_date).to_i
-          months = (start_date..end_date).map { |d| d.beginning_of_month }.uniq
-          years = (start_date.year..end_date.year).map { |y| Date.new(y, 1, 1) }
-        %>
-        
-        <% # Daily headers %>
-        <% (start_date..end_date).each do |date| %>
-          <div class="time-header <%= 'weekend' if date.saturday? || date.sunday? %>" 
-               data-timeline-target="timeHeader"
-               data-date="<%= date.to_s %>"
-               data-day="<%= date.day %>"
-               data-month="<%= date.month %>"
-               data-year="<%= date.year %>"
-               data-is-month-start="<%= date.day == 1 %>"
-               data-is-year-start="<%= date.day == 1 && date.month == 1 %>">
-            <span class="day-label"><%= date.strftime('%d/%m') %></span>
-            <span class="month-label" style="display: none;"><%= date.strftime('%B %Y') %></span>
-            <span class="year-label" style="display: none;"><%= date.year %></span>
-          </div>
-        <% end %>
-      </div>
-
-      <!-- Contributor rows with features -->
-      <% all_contributors.each do |contributor| %>
-        <% 
-          if contributor.nil?
-            features = unassigned_features
-            contributor_id = "unassigned"
-          else
-            features = project.project_features.joins(:responsible_assignments)
-                              .where(feature_assignments: { user_id: contributor.id, role: 'responsible' })
-            contributor_id = contributor.id
-          end
-        %>
-        <div class="contributor-row" 
-             data-timeline-target="contributor"
-             data-contributor="<%= contributor_id %>" 
-             style="height: 60px">
-          <% features.sort_by { |f| f.start_date || start_date }.each do |feature| %>
-            <% 
-              feature_start = feature.start_date || start_date
-              feature_end = feature.end_date || (feature.start_date + feature.duration.days if feature.start_date && feature.duration)
-              days_from_start = (feature_start - start_date).to_i
-              duration = (feature_end - feature_start).to_i
-              left_px = days_from_start * 60
-              width_px = [duration * 60, 60].max
-            %>
-            <div 
-              class="feature-bar feature-card <%= feature.status %>"
-              style="left: <%= left_px %>px; width: <%= width_px %>px; top: 10px;"
-              data-x="<%= left_px %>"
-              data-y="10"
-              data-original-left="<%= left_px %>"
-              data-original-width="<%= width_px %>"
-              data-start-date="<%= feature_start %>"
-              data-end-date="<%= feature_end %>"
-              data-duration="<%= duration %>"
-              data-project-id="<%= project.id %>"
-              data-id="<%= feature.id %>"
-              title="<%= feature.name %> (<%= feature.duration %> days) - <%= feature.department %>"
-            >
-              <%= feature.name %>
+  <!-- Timeline Content -->
+  <div class="timeline-content" data-timeline-target="content">
+    <!-- Year View -->
+    <div class="timeline-year-view" data-timeline-target="yearView">
+      <div class="timeline-grid">
+        <!-- Month Headers -->
+        <div class="timeline-header-row">
+          <div class="timeline-row-label">Contributors</div>
+          <% (1..12).each do |month| %>
+            <div class="timeline-header-cell" 
+                 data-month="<%= month %>"
+                 data-action="click->timeline#zoomToMonth"
+                 data-month-number="<%= month %>">
+              <%= Date::MONTHNAMES[month] %>
             </div>
           <% end %>
         </div>
-      <% end %>
+
+        <!-- Contributor Rows -->
+        <% 
+          # Get all unique responsible contributors
+          responsible_contributors = project.project_features
+            .joins(:responsible_assignments)
+            .includes(:responsible_assignments, :responsible_contributors)
+            .map(&:responsible_contributors)
+            .flatten
+            .uniq
+          
+          # Add unassigned features
+          unassigned_features = project.project_features
+            .left_joins(:responsible_assignments)
+            .where(feature_assignments: { id: nil })
+          
+          all_contributors = responsible_contributors + (unassigned_features.any? ? [nil] : [])
+        %>
+        
+        <% all_contributors.each do |contributor| %>
+          <div class="timeline-row" data-contributor-id="<%= contributor&.id || 'unassigned' %>">
+            <!-- Contributor Label -->
+            <div class="timeline-row-label">
+              <%= contributor&.name || 'Unassigned' %>
+            </div>
+            
+            <!-- Month Area (where feature bars will be positioned) -->
+            <div class="timeline-month-area" data-contributor-id="<%= contributor&.id || 'unassigned' %>">
+              <!-- Feature bars will be absolutely positioned here -->
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Month View -->
+    <div class="timeline-month-view d-none" data-timeline-target="monthView">
+      <div class="timeline-grid">
+        <!-- Day Headers -->
+        <div class="timeline-header-row">
+          <div class="timeline-row-label">Contributors</div>
+          <% (1..31).each do |day| %>
+            <div class="timeline-header-cell" data-day="<%= day %>">
+              <%= sprintf("%02d", day) %>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Contributor Rows -->
+        <% all_contributors.each do |contributor| %>
+          <div class="timeline-row" data-contributor-id="<%= contributor&.id || 'unassigned' %>">
+            <!-- Contributor Label -->
+            <div class="timeline-row-label">
+              <%= contributor&.name || 'Unassigned' %>
+            </div>
+            
+            <!-- Day Area (where feature bars will be positioned) -->
+            <div class="timeline-day-area" data-contributor-id="<%= contributor&.id || 'unassigned' %>">
+              <!-- Feature bars will be absolutely positioned here -->
+            </div>
+          </div>
+        <% end %>
+      </div>
     </div>
   </div>
 </div>

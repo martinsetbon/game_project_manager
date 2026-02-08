@@ -12,8 +12,12 @@ class FeatureAssignment < ApplicationRecord
   validate :warn_same_user_assignment, if: -> { role == 'accountable' && same_user_responsible? }
 
   # Callbacks to adjust dates when responsible assignments change
-  after_create :adjust_dates_if_responsible
-  after_destroy :adjust_dates_if_responsible
+  # Disabled to prevent feature deletion during updates
+  # after_create :adjust_dates_if_responsible
+  # after_destroy :adjust_dates_if_responsible
+  
+  # Create notification when assignment is created
+  after_create :create_assignment_notification
 
   private
 
@@ -32,5 +36,16 @@ class FeatureAssignment < ApplicationRecord
     return if project_feature.nil?
     # Adjust all features for this responsible contributor in the project
     ProjectFeature.adjust_all_for_responsible_contributor(user_id, project_feature.project_id)
+  end
+
+  def create_assignment_notification
+    Rails.logger.info "Creating notification for user #{user.email} for feature #{project_feature.name} as #{role}"
+    begin
+      notification = Notification.create_for_feature_assignment(project_feature, user, role)
+      Rails.logger.info "Notification created successfully: #{notification.id}"
+    rescue => e
+      Rails.logger.error "Failed to create notification: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+    end
   end
 end

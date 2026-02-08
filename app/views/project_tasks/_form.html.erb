@@ -1,0 +1,154 @@
+<%= form_with model: [@project, @task], url: project_tasks_path(@project), local: true, class: "task-form", data: { controller: "task-form", action: "submit->task-form#submit" } do |f| %>
+  
+  <!-- Task Name -->
+  <div class="project-info-field">
+    <div class="field-display">
+      <div class="field-label">
+        <span>Task Name</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value">
+        <%= f.text_field :name, class: "form-control", required: true, placeholder: "Enter task name" %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Start Date -->
+  <div class="project-info-field">
+    <div class="field-display">
+      <div class="field-label">
+        <span>Start Date (Optional)</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value">
+        <%= f.date_field :start_date, class: "form-control task-date-field", placeholder: "Select start date", data: { task_form_target: "startDate" } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Start Time -->
+  <div class="project-info-field">
+    <div class="field-display">
+      <div class="field-label">
+        <span>Start Time (Optional)</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value">
+        <%= f.time_field :start_time, class: "form-control", step: 900 %>
+      </div>
+    </div>
+  </div>
+
+  <!-- End Date -->
+  <div class="project-info-field">
+    <div class="field-display">
+      <div class="field-label">
+        <span>End Date (Optional)</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value">
+        <%= f.date_field :end_date, class: "form-control task-date-field", placeholder: "Select end date", data: { task_form_target: "endDate" } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- End Time -->
+  <div class="project-info-field">
+    <div class="field-display">
+      <div class="field-label">
+        <span>End Time (Optional)</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value">
+        <%= f.time_field :end_time, class: "form-control", step: 900 %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Duration -->
+  <div class="project-info-field">
+    <div class="field-display">
+      <div class="field-label">
+        <span>Duration (days, Optional)</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value">
+        <%= f.number_field :duration, class: "form-control", min: 1, placeholder: "Enter duration in days" %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Responsible -->
+  <div class="project-info-field">
+    <div class="field-display">
+      <div class="field-label">
+        <span>Responsible (Optional)</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value">
+        <%= f.select :responsible_user_id,
+                    options_for_select(@all_users.map { |user| ["#{user.name} - #{user.job || 'No title'}", user.id] }, nil),
+                    { include_blank: "Select a team member" },
+                    { class: "form-control" } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accountable -->
+  <div class="project-info-field">
+    <div class="field-display">
+      <div class="field-label">
+        <span>Accountable (Optional)</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value">
+        <%= f.select :accountable_user_id,
+                    options_for_select(@all_users.map { |user| ["#{user.name} - #{user.job || 'No title'}", user.id] }, nil),
+                    { include_blank: "Select a team member" },
+                    { class: "form-control" } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Priority -->
+  <div class="project-info-field">
+    <div class="field-display">
+      <div class="field-label">
+        <span>Priority (Optional)</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value">
+        <%= f.select :priority,
+                    options_for_select([['None', ''], ['High', 'high'], ['Medium', 'medium'], ['Low', 'low']], ''),
+                    {},
+                    { class: "form-control" } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature -->
+  <div class="project-info-field">
+    <div class="field-display">
+      <div class="field-label">
+        <span>Feature (Optional)</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value">
+        <%= f.select :project_feature_id,
+                    options_for_select(@project_features.map { |feature| [feature.name, feature.id] }, @task.project_feature_id),
+                    { include_blank: "Select a feature (optional)" },
+                    { class: "form-control" } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Actions -->
+  <div style="display: flex; gap: 1rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+    <%= f.submit "Create Task", class: "btn btn-primary", id: "taskSubmitBtn", data: { task_form_target: "submitBtn" }, style: "display: flex; align-items: center; gap: 0.5rem;" %>
+    <%= link_to project_path(@project), class: "btn btn-secondary", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
+      <i class="bi bi-arrow-left"></i>
+      Cancel
+    <% end %>
+  </div>
+<% end %>
+

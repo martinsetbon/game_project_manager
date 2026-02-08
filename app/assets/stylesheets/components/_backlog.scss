@@ -1,0 +1,120 @@
+// Backlog Styles
+
+.backlog-task-item {
+  margin-bottom: 0.75rem;
+  
+  .department-chip {
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background-color: rgba(255, 255, 255, 0.15);
+    color: $white;
+    white-space: nowrap;
+  }
+  
+  .status-chip {
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    
+    &.status-not_started {
+      background-color: rgba(255, 255, 255, 0.2);
+      color: $white;
+    }
+    
+    &.status-work_in_progress {
+      background-color: #0d6efd;
+      color: $white;
+    }
+    
+    &.status-stand_by {
+      background-color: #ffc107;
+      color: #000;
+    }
+    
+    &.status-job_done {
+      background-color: #198754;
+      color: $white;
+    }
+  }
+  
+  .task-description-preview {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+  
+  .task-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+    
+    .info-item {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 0.9rem;
+      
+      strong {
+        color: $white;
+        margin-right: 0.5rem;
+      }
+    }
+  }
+  
+  .task-description {
+    margin-bottom: 1rem;
+    
+    p {
+      color: rgba(255, 255, 255, 0.8);
+      margin: 0.5rem 0;
+      line-height: 1.5;
+    }
+  }
+}
+
+.project-backlog-section {
+  margin-bottom: 2rem;
+  
+  .project-backlog-title {
+    color: $white;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    
+    i {
+      color: #FDCA40;
+    }
+  }
+  
+  .project-backlog-task {
+    margin-left: 1rem;
+  }
+}
+
+.task-count-badge {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: $white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.user-backlog-column,
+.project-backlog-column {
+  .column-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+

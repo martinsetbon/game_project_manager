@@ -1,0 +1,39 @@
+<div class="panel-header">
+  <h2>My Projects</h2>
+  <% if my_projects&.any? %>
+    <%= link_to 'New Project', new_project_path, class: "btn btn-primary" %>
+  <% end %>
+</div>
+
+<% if my_projects&.any? %>
+  <div class="projects-grid">
+    <% my_projects.each do |project| %>
+      <div class="project-card">
+        <%= link_to project_path(project), class: "project-link" do %>
+          <div class="project-header">
+            <h3 class="project-name"><%= project.name %></h3>
+            <span class="project-status">Active</span>
+          </div>
+          <p class="project-description"><%= truncate(project.description, length: 100) %></p>
+          <div class="project-stats">
+            <div class="stat">
+              <i class="bi bi-list-task"></i>
+              <span><%= project.project_features.count %> features</span>
+            </div>
+            <div class="stat">
+              <i class="bi bi-calendar"></i>
+              <span><%= project.start_date.strftime("%b %Y") %></span>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+<% else %>
+  <div class="empty-state">
+    <i class="bi bi-folder-plus"></i>
+    <h3>No projects yet</h3>
+    <p>Create your first project to get started!</p>
+    <%= link_to 'Create Project', new_project_path, class: "btn btn-primary" %>
+  </div>
+<% end %>

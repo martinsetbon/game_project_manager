@@ -1,0 +1,10 @@
+permission test
+
+project-manager-test1@exemple.com
+pmt123
+
+permission-test-contributor1@exemple.com
+ptc123
+
+permission-test-contributor2@exemple.com
+ptc223

@@ -1,0 +1,101 @@
+<div class="new-dashboard">
+  <!-- Page Title -->
+  <div class="page-title">
+    <h1>New notifications</h1>
+  </div>
+
+  <!-- New Notifications Section -->
+  <% if @new_notifications.any? %>
+    <div class="notifications-list-section">
+      <% @new_notifications.each do |notification| %>
+        <% 
+          # Determine border color
+          # Priority: high = urgent/problem = red border
+          # Has project_feature = feature notification = blue border
+          # No project_feature but has project = project notification = purple border
+          border_color = if notification.priority == 'high'
+            'red' # Urgent/problem - red border
+          elsif notification.project_feature.present?
+            'blue' # Feature notification - blue border
+          else
+            'purple' # Project notification - purple border
+          end
+        %>
+        <div class="notification-card notification-border-<%= border_color %>">
+          <!-- Date (Top Right) -->
+          <div class="notification-date">
+            <%= notification.created_at.strftime('%Y-%m-%d %H:%M') %>
+          </div>
+          
+          <!-- Notification Name -->
+          <h3 class="notification-name"><%= notification.title %></h3>
+          
+          <!-- Notification Description -->
+          <p class="notification-description"><%= notification.message %></p>
+          
+          <!-- See Button (Bottom Right) -->
+          <div class="notification-actions">
+            <% if notification.project_feature.present? %>
+              <%= link_to project_project_feature_path(notification.project, notification.project_feature), class: "see-btn" do %>
+                See
+              <% end %>
+            <% else %>
+              <%= link_to project_path(notification.project), class: "see-btn" do %>
+                See
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="notifications-empty-state">
+      <p>No new notifications in the last 2 days</p>
+    </div>
+  <% end %>
+
+  <!-- Past Notifications Section -->
+  <% if @past_notifications.any? %>
+    <div class="notifications-section-divider">
+      <h2>Past notifications</h2>
+    </div>
+    
+    <div class="notifications-list-section">
+      <% @past_notifications.each do |notification| %>
+        <div class="notification-card notification-past">
+          <!-- Date (Top Right) -->
+          <div class="notification-date">
+            <%= notification.created_at.strftime('%Y-%m-%d %H:%M') %>
+          </div>
+          
+          <!-- Notification Name -->
+          <h3 class="notification-name"><%= notification.title %></h3>
+          
+          <!-- Notification Description -->
+          <p class="notification-description"><%= notification.message %></p>
+          
+          <!-- See Button (Bottom Right) -->
+          <div class="notification-actions">
+            <% if notification.project_feature.present? %>
+              <%= link_to project_project_feature_path(notification.project, notification.project_feature), class: "see-btn" do %>
+                See
+              <% end %>
+            <% else %>
+              <%= link_to project_path(notification.project), class: "see-btn" do %>
+                See
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <!-- Empty State (if no notifications at all) -->
+  <% if @new_notifications.empty? && @past_notifications.empty? %>
+    <div class="notifications-empty-state">
+      <h3>No notifications yet</h3>
+      <p>You'll see project updates and important messages here.</p>
+    </div>
+  <% end %>
+</div>

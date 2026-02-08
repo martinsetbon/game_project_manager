@@ -1,104 +1,1049 @@
-<h1><%= @project.name %></h1>
-<p><strong>Description:</strong> <%= @project.description %></p>
-<p><strong>Start Date:</strong> <%= @project.start_date %></p>
-<p><strong>End Date:</strong> <%= @project.end_date || "No deadline yet" %></p>
-<p><strong>Budget:</strong> <%= @project.budget %></p>
-<div class="mb-3">
-  <%= link_to 'Edit Project', edit_project_path(@project), class: "btn btn-warning" %>
-  <%= link_to 'Back to Projects', projects_path, class: "btn btn-secondary" %>
-</div>
-<!-- Team Members Button -->
-<h3 class="mt-4">Team</h3>
-<%= link_to 'View Team Members', team_project_path(@project), class: "btn btn-outline-primary" %>
-<!-- Features Section -->
-<h2 class="mt-4">Features</h2>
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <div class="d-flex gap-2">
-    <%= link_to 'New Feature', new_project_project_feature_path(@project), class: "btn btn-primary" %>
-    
-    <!-- Order By Dropdown -->
-    <div class="dropdown">
-      <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="orderByDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-        Order by: <%= params[:order_by]&.humanize || 'Created date' %>
-      </button>
-      <ul class="dropdown-menu" aria-labelledby="orderByDropdown">
-        <%= link_to 'Name', project_path(@project, order_by: 'name', statuses: params[:statuses]), class: "dropdown-item#{' active' if params[:order_by] == 'name'}" %>
-        <%= link_to 'Created date', project_path(@project, order_by: 'created_date', statuses: params[:statuses]), class: "dropdown-item#{' active' if params[:order_by] == 'created_date' || params[:order_by].nil?}" %>
-        <%= link_to 'Status', project_path(@project, order_by: 'status', statuses: params[:statuses]), class: "dropdown-item#{' active' if params[:order_by] == 'status'}" %>
-        <%= link_to 'Responsible', project_path(@project, order_by: 'responsible', statuses: params[:statuses]), class: "dropdown-item#{' active' if params[:order_by] == 'responsible'}" %>
-      </ul>
-    </div>
+<div class="new-dashboard">
+  <!-- Page Title with Settings Button -->
+  <div class="page-title" style="display: flex; justify-content: space-between; align-items: center;">
+    <h1><%= @project.name %></h1>
+    <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#projectSettingsModal" style="display: flex; align-items: center; gap: 0.5rem;">
+      <i class="bi bi-gear"></i>
+      Project Info
+    </button>
   </div>
 
-  <%= form_tag project_path(@project), method: :get, class: 'ms-3' do %>
-    <%= hidden_field_tag :order_by, params[:order_by] %>
-    <div class="btn-group" role="group">
-      <% statuses = {
-        'not_started' => ['Not Started', 'warning'],
-        'work_in_progress' => ['On Going', 'primary'],
-        'job_done' => ['Done', 'success']
-      } %>
-      
-      <% selected_statuses = Array(params[:statuses]) %>
-      
-      <% statuses.each do |status_key, (label, color)| %>
-        <input type="checkbox" 
-               class="btn-check" 
-               name="statuses[]" 
-               value="<%= status_key %>" 
-               id="status_<%= status_key %>" 
-               <%= 'checked' if selected_statuses.include?(status_key) %>
-               autocomplete="off"
-               onchange="this.form.submit()">
-        <label class="btn btn-outline-<%= color %>" for="status_<%= status_key %>">
-          <%= label %>
-        </label>
-      <% end %>
+  <!-- Project Folder with Tabs -->
+  <div data-controller="project-tabs">
+    <!-- Tabs Header -->
+    <div class="folder-tabs">
+      <button class="folder-tab active" data-project-tabs-target="tabButton" data-tab="tasks" data-action="click->project-tabs#switchTab">
+        Task List
+      </button>
+      <button class="folder-tab" data-project-tabs-target="tabButton" data-tab="timeline" data-action="click->project-tabs#switchTab">
+        Timeline
+      </button>
     </div>
-  <% end %>
-</div>
-<% selected_statuses = Array(params[:statuses]) %>
-<% features = if selected_statuses.present?
-                @project.project_features.where(status: selected_statuses)
-              else
-                @project.project_features
-              end %>
 
-<% features = case params[:order_by]
-              when 'name'
-                features.order(:name)
-              when 'status'
-                features.order(:status)
-              when 'responsible'
-                features.joins(:responsible_contributors)
-                       .includes(:responsible_assignments, :responsible_contributors)
-                       .order('users.name')
-              else # created_date or default
-                features.order(created_at: :desc)
-              end %>
-
-<div class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-2">
-  <% features.each do |feature| %>
-    <% status_class = case feature.status
-                     when 'not_started' then 'bg-warning bg-opacity-25'
-                     when 'work_in_progress' then 'bg-primary bg-opacity-25'
-                     when 'job_done' then 'bg-success bg-opacity-25'
-                     else 'bg-light'
-                     end %>
-    <div class="col">
-      <%= link_to project_project_feature_path(@project, feature), class: "text-decoration-none" do %>
-        <div class="card h-100 <%= status_class %> hover-shadow">
-          <div class="card-body p-2">
-            <h6 class="card-title mb-1 text-truncate"><%= feature.name %></h6>
-            <span class="badge <%= status_badge_class(feature.status) %>">
-              <%= feature.status.humanize %>
-            </span>
+    <!-- Folder Content -->
+    <div class="project-folder folder-content" style="<%= 'background-image: url(' + url_for(@project.background_image) + ');' if @project.background_image.attached? %>">
+      <!-- Tasks Tab -->
+      <div class="folder-tab-panel active" data-project-tabs-target="tabPanel" data-tab-panel="tasks" data-controller="view-switcher">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <h2 style="margin: 0;">Task list</h2>
+          <% if @project.user == current_user %>
+            <%= link_to new_project_task_path(@project), class: "btn btn-primary", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
+              <i class="bi bi-plus-circle"></i>
+              New Task
+            <% end %>
+          <% end %>
+        </div>
+        
+        <!-- Filters and View Switcher -->
+        <div class="features-controls">
+          <!-- Filter Buttons -->
+          <div class="feature-filters">
+            <button class="feature-filter-btn status-work_in_progress" data-status="work_in_progress" data-action="click->view-switcher#toggleStatusFilter">
+              On going
+            </button>
+            <button class="feature-filter-btn status-not_started" data-status="not_started" data-action="click->view-switcher#toggleStatusFilter">
+              Not started
+            </button>
+            <button class="feature-filter-btn status-job_done" data-status="job_done" data-action="click->view-switcher#toggleStatusFilter">
+              Job done
+            </button>
+            <button class="feature-filter-btn status-stand_by" data-status="stand_by" data-action="click->view-switcher#toggleStatusFilter">
+              Stand by
+            </button>
+            <button class="feature-filter-btn filter-my-features" data-action="click->view-switcher#toggleMyFeaturesFilter">
+              My task
+            </button>
+          </div>
+          
+          <!-- Switch View -->
+          <div class="switch-view-control">
+            <span class="switch-view-label">Switch view</span>
+            <button class="switch-view-toggle cards-view" data-action="click->view-switcher#toggleView">
+              <div class="switch-slider"></div>
+              <div class="switch-icons">
+                <i class="bi bi-grid-3x3-gap" data-view-icon="cards"></i>
+                <i class="bi bi-table" data-view-icon="table"></i>
+              </div>
+            </button>
           </div>
         </div>
-      <% end %>
+        
+        <!-- Tasks Content Container with Scroll -->
+        <div class="features-scroll-container">
+          <!-- Tasks Cards View -->
+          <div class="features-cards-container" style="display: block;">
+            <% if @project_tasks.any? %>
+              <div class="features-grid">
+                <% @project_tasks.each do |task| %>
+                  <% is_my_task = task.responsible_users.include?(current_user) || task.accountable_users.include?(current_user) %>
+                  
+                  <div class="feature-card-wrapper">
+                    <%= link_to project_task_path(@project, task),
+                      class: "feature-card status-#{task.status} priority-#{task.priority || 'none'}",
+                      data: { my_feature: is_my_task, feature_id: task.project_feature_id || 'none' },
+                      style: "--feature-text-color: #{feature_text_color(task.project_feature_id)};" do %>
+                      <div class="feature-name"><%= task.name %></div>
+                      <div class="feature-status">
+                        <% if task.status == 'work_in_progress' %>
+                          On Going
+                        <% elsif task.status == 'stand_by' %>
+                          Stand By
+                        <% else %>
+                          <%= task.status.humanize %>
+                        <% end %>
+                      </div>
+                      <% if task.in_backlog? %>
+                        <div class="backlog-indicator" title="This task is in backlog">
+                          <i class="bi bi-inbox"></i>
+                        </div>
+                      <% end %>
+                      <% if task.overdue? %>
+                        <div class="overdue-indicator" title="This task's end date is overdue">
+                          <i class="bi bi-exclamation-circle-fill"></i>
+                        </div>
+                      <% end %>
+                      <% if is_my_task %>
+                        <div class="my-feature-indicator">
+                          <i class="bi bi-person-fill"></i>
+                        </div>
+                      <% end %>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            <% else %>
+              <div style="text-align: center; padding: 3rem; color: rgba(255, 255, 255, 0.6);">
+                <i class="bi bi-inbox" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+                <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">No tasks yet</p>
+                <p style="font-size: 0.9rem;">Create your first task to get started</p>
+              </div>
+            <% end %>
+          </div>
+          
+          <!-- Tasks Table View -->
+          <div class="features-table-container" style="display: none;" data-controller="tasks-table">
+            <table class="features-table">
+              <thead>
+                <tr>
+                  <th class="column-name">
+                    <div class="header-content">
+                      <span>Name</span>
+                      <div class="header-buttons">
+                        <div class="dropdown">
+                          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Toggle Columns">
+                            <i class="bi bi-list"></i>
+                          </button>
+                          <ul class="dropdown-menu">
+                            <li><button class="dropdown-item column-toggle-capsule" data-column="start-date" title="Toggle Start Date column">
+                              <i class="bi bi-eye-slash-fill"></i> Start Date
+                            </button></li>
+                            <li><button class="dropdown-item column-toggle-capsule" data-column="end-date" title="Toggle End Date column">
+                              <i class="bi bi-eye-slash-fill"></i> End Date
+                            </button></li>
+                            <li><button class="dropdown-item column-toggle-capsule" data-column="status" title="Toggle Status column">
+                              <i class="bi bi-eye-slash-fill"></i> Status
+                            </button></li>
+                            <li><button class="dropdown-item column-toggle-capsule" data-column="responsible" title="Toggle Responsible column">
+                              <i class="bi bi-eye-slash-fill"></i> Responsible
+                            </button></li>
+                            <li><button class="dropdown-item column-toggle-capsule" data-column="accountable" title="Toggle Accountable column">
+                              <i class="bi bi-eye-slash-fill"></i> Accountable
+                            </button></li>
+                            <li><button class="dropdown-item column-toggle-capsule" data-column="priority" title="Toggle Priority column">
+                              <i class="bi bi-eye-slash-fill"></i> Priority
+                            </button></li>
+                            <li><button class="dropdown-item column-toggle-capsule" data-column="feature" title="Toggle Feature column">
+                              <i class="bi bi-eye-slash-fill"></i> Feature
+                            </button></li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </th>
+                  <th class="column-toggle" data-column="start-date" style="display: none;">
+                    <div class="header-content">
+                      <span>Start Date</span>
+                      <div class="header-buttons">
+                        <button class="toggle-btn" data-column="start-date" title="Hide Start Date column">
+                          <i class="bi bi-eye-slash"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </th>
+                  <th class="column-toggle" data-column="end-date" style="display: none;">
+                    <div class="header-content">
+                      <span>End Date</span>
+                      <div class="header-buttons">
+                        <button class="toggle-btn" data-column="end-date" title="Hide End Date column">
+                          <i class="bi bi-eye-slash"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </th>
+                  <th class="column-toggle" data-column="status" style="display: none;">
+                    <div class="header-content">
+                      <span>Status</span>
+                      <div class="header-buttons">
+                        <button class="toggle-btn" data-column="status" title="Hide Status column">
+                          <i class="bi bi-eye-slash"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </th>
+                  <th class="column-toggle" data-column="responsible" style="display: none;">
+                    <div class="header-content">
+                      <span>Responsible</span>
+                      <div class="header-buttons">
+                        <button class="toggle-btn" data-column="responsible" title="Hide Responsible column">
+                          <i class="bi bi-eye-slash"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </th>
+                  <th class="column-toggle" data-column="accountable" style="display: none;">
+                    <div class="header-content">
+                      <span>Accountable</span>
+                      <div class="header-buttons">
+                        <button class="toggle-btn" data-column="accountable" title="Hide Accountable column">
+                          <i class="bi bi-eye-slash"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </th>
+                  <th class="column-toggle" data-column="priority" style="display: none;">
+                    <div class="header-content">
+                      <span>Priority</span>
+                      <div class="header-buttons">
+                        <button class="toggle-btn" data-column="priority" title="Hide Priority column">
+                          <i class="bi bi-eye-slash"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </th>
+                  <th class="column-toggle" data-column="feature" style="display: none;">
+                    <div class="header-content">
+                      <span>Feature</span>
+                      <div class="header-buttons">
+                        <button class="toggle-btn" data-column="feature" title="Hide Feature column">
+                          <i class="bi bi-eye-slash"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if @project_tasks.any? %>
+                  <% @project_tasks.each do |task| %>
+                    <% is_my_task = task.responsible_users.include?(current_user) || task.accountable_users.include?(current_user) %>
+                    <tr data-my-feature="<%= is_my_task %>" 
+                        data-priority="<%= task.priority || 'none' %>" 
+                        data-feature-id="<%= task.project_feature_id || 'none' %>"
+                        style="--feature-text-color: <%= feature_text_color(task.project_feature_id) %>;">
+                      <td class="column-name status-<%= task.status %> priority-<%= task.priority || 'none' %>">
+                        <%= task.name %>
+                        <% if task.in_backlog? %>
+                          <span style="margin-left: 0.5rem; color: rgba(255, 255, 255, 0.5); font-size: 0.85rem;">
+                            <i class="bi bi-inbox"></i> Backlog
+                          </span>
+                        <% end %>
+                      </td>
+                    <td class="column-data" data-column="start-date" style="display: none;">
+                      <%= task.start_date&.strftime("%Y-%m-%d") || "-" %>
+                    </td>
+                    <td class="column-data" data-column="end-date" style="display: none;">
+                      <%= task.end_date&.strftime("%Y-%m-%d") || "-" %>
+                    </td>
+                    <td class="column-data" data-column="status" style="display: none;">
+                      <span class="status-badge <%= task.status %>">
+                        <% if task.status == 'work_in_progress' %>
+                          On Going
+                        <% elsif task.status == 'stand_by' %>
+                          Stand By
+                        <% else %>
+                          <%= task.status.humanize %>
+                        <% end %>
+                      </span>
+                    </td>
+                    <td class="column-data" data-column="responsible" style="display: none;">
+                      <% if task.responsible_users.any? %>
+                        <% task.responsible_users.each do |user| %>
+                          <div class="contributor-info">
+                            <%= user.name %>
+                          </div>
+                        <% end %>
+                      <% else %>
+                        -
+                      <% end %>
+                    </td>
+                    <td class="column-data" data-column="accountable" style="display: none;">
+                      <% if task.accountable_users.any? %>
+                        <% task.accountable_users.each do |user| %>
+                          <div class="contributor-info">
+                            <%= user.name %>
+                          </div>
+                        <% end %>
+                      <% else %>
+                        -
+                      <% end %>
+                    </td>
+                    <td class="column-data" data-column="priority" style="display: none;">
+                      <%= task.priority&.humanize || "-" %>
+                    </td>
+                    <td class="column-data" data-column="feature" style="display: none;">
+                      <% if task.project_feature.present? %>
+                        <%= link_to task.project_feature.name, project_project_feature_path(@project, task.project_feature), class: "feature-link", data: { turbo_frame: "_top" } %>
+                      <% else %>
+                        -
+                      <% end %>
+                    </td>
+                  </tr>
+                  <% end %>
+                <% else %>
+                  <tr>
+                    <td colspan="8" style="text-align: center; padding: 3rem; color: rgba(255, 255, 255, 0.6);">
+                      <i class="bi bi-inbox" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+                      <p style="margin: 0;">No tasks yet. Create your first task to get started.</p>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline Tab -->
+      <div class="folder-tab-panel" data-project-tabs-target="tabPanel" data-tab-panel="timeline" data-controller="calendar-timeline">
+        <div class="calendar-timeline-container">
+          <!-- Left Sidebar - Contributor Selection (Google Calendar style) -->
+          <div class="calendar-sidebar" data-calendar-timeline-target="sidebar">
+            <div class="sidebar-header">
+              <h3>Contributors</h3>
+              <% if @project.user == current_user %>
+                <button class="btn btn-sm btn-outline-secondary" 
+                        data-action="click->calendar-timeline#toggleMyTasksOnly" 
+                        data-calendar-timeline-target="myTasksToggle">
+                  My Tasks Only
+                </button>
+              <% end %>
+            </div>
+            
+            <!-- Search Box -->
+            <div class="sidebar-search">
+              <i class="bi bi-search"></i>
+              <input type="text" 
+                     class="form-control" 
+                     placeholder="Search contributors..." 
+                     data-calendar-timeline-target="searchInput"
+                     data-action="input->calendar-timeline#filterContributors">
+            </div>
+            
+            <!-- Contributors List -->
+            <div class="contributors-list" data-calendar-timeline-target="contributorsList">
+              <% @contributors.each do |contributor| %>
+                <% is_current_user = contributor.id == current_user.id %>
+                <% is_selected = is_current_user %>
+                <div class="contributor-item <%= 'selected' if is_selected %>" 
+                     data-contributor-id="<%= contributor.id %>"
+                     data-contributor-name="<%= contributor.name %>"
+                     data-contributor-job="<%= contributor.job || '' %>"
+                     data-action="click->calendar-timeline#toggleContributor">
+                  <div class="contributor-checkbox">
+                    <input type="checkbox" 
+                           <%= 'checked' if is_selected %>
+                           data-calendar-timeline-target="contributorCheckbox">
+                    <span class="checkmark"></span>
+                  </div>
+                  <div class="contributor-info">
+                    <div class="contributor-name"><%= contributor.name %></div>
+                    <% if contributor.job.present? %>
+                      <div class="contributor-job"><%= contributor.job %></div>
+                    <% end %>
+                  </div>
+                  <div class="contributor-color-indicator" style="display: none;"></div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+          
+          <!-- Main Calendar Area (iPhone Calendar style) -->
+          <div class="calendar-main-area">
+            <!-- Calendar Header with Navigation -->
+            <div class="calendar-header">
+              <div class="calendar-nav-group">
+                <button class="calendar-zoom-out-btn" data-action="click->calendar-timeline#zoomOut" data-calendar-timeline-target="monthYear">
+                  <i class="bi bi-chevron-left"></i>
+                  <span class="calendar-month-year-text">January 2025</span>
+                </button>
+                <button class="calendar-today-btn" data-action="click->calendar-timeline#goToToday">
+                  Today
+                </button>
+                <button class="calendar-project-btn project-start-btn" data-action="click->calendar-timeline#goToProjectStart" title="Go to project start">
+                  <i class="bi bi-flag"></i>
+                  Project Start
+                </button>
+                <button class="calendar-project-btn project-end-btn" data-action="click->calendar-timeline#goToProjectEnd" title="Go to project end">
+                  <i class="bi bi-flag-fill"></i>
+                  Project End
+                </button>
+              </div>
+            </div>
+            
+            <!-- Calendar Grid -->
+            <div class="calendar-grid" data-calendar-timeline-target="calendarGrid">
+              <!-- Calendar will be rendered here by JavaScript -->
+            </div>
+          </div>
+        </div>
+        
+        <!-- Tasks Data -->
+        <% 
+          tasks_data = @project_tasks.select { |t| t.start_date.present? && t.end_date.present? }.map { |t| 
+            {
+              id: t.id,
+              name: t.name || '',
+              status: t.status || 'not_started',
+              priority: t.priority || 'none',
+              start_date: t.start_date&.iso8601,
+              end_date: t.end_date&.iso8601,
+              start_time: t.start_time&.strftime("%H:%M"),
+              end_time: t.end_time&.strftime("%H:%M"),
+              project_feature_id: t.project_feature_id,
+              responsible_users: t.responsible_users.map { |u| { id: u.id, name: u.name || '' } },
+              accountable_users: t.accountable_users.map { |u| { id: u.id, name: u.name || '' } }
+            }
+          }
+          
+          contributors_data = @contributors.map { |c| { id: c.id, name: c.name || '', job: c.job || '' } }
+          is_project_creator = @project.user == current_user
+        %>
+        <script type="application/json" data-calendar-timeline-target="tasksData">
+          <%= tasks_data.to_json.html_safe %>
+        </script>
+        <script type="application/json" data-calendar-timeline-target="contributorsData">
+          <%= contributors_data.to_json.html_safe %>
+        </script>
+        <div data-calendar-timeline-target="metadata"
+             data-current-user-id="<%= current_user.id %>"
+             data-is-project-creator="<%= is_project_creator %>"
+             data-project-start-date="<%= @project.start_date ? @project.start_date.iso8601 : Date.today.iso8601 %>"
+             data-project-end-date="<%= @project.end_date ? @project.end_date.iso8601 : (Date.today + 365.days).iso8601 %>">
+        </div>
+      </div>
+
     </div>
-  <% end %>
+
+    <!-- Backlog Warning Modal (moved outside folder-content to avoid z-index issues) -->
+    <div class="modal fade" id="backlogWarningModal" tabindex="-1" aria-labelledby="backlogWarningModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="backlogWarningModalLabel">No Dates Set</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>No start or end date has been set. This task will be put in the backlog.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Editing</button>
+            <button type="button" class="btn btn-primary" id="confirmBacklogBtn">OK, Send to Backlog</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calendar Task Creation Modal (only for project creators) -->
+    <% if @project.user == current_user %>
+      <div class="modal fade" id="calendarTaskModal" tabindex="-1" aria-labelledby="calendarTaskModalLabel" aria-hidden="true" data-controller="calendar-task-form">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="calendarTaskModalLabel">Create New Task</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <%= form_with model: [@project, Task.new], url: project_tasks_path(@project), local: false, class: "task-form", data: { controller: "calendar-task-form", action: "turbo:submit-end->calendar-task-form#handleSubmit" } do |f| %>
+              <div class="modal-body">
+                <!-- Task Name -->
+                <div class="mb-3">
+                  <label for="task_name" class="form-label">Task Name <span class="text-danger">*</span></label>
+                  <%= f.text_field :name, class: "form-control", id: "task_name", required: true, placeholder: "Enter task name" %>
+                </div>
+
+                <!-- Start Date -->
+                <div class="mb-3">
+                  <label for="task_start_date" class="form-label">Start Date</label>
+                  <%= f.date_field :start_date, class: "form-control", id: "task_start_date" %>
+                </div>
+
+                <!-- Start Time -->
+                <div class="mb-3">
+                  <label for="task_start_time" class="form-label">Start Time</label>
+                  <%= f.time_field :start_time, class: "form-control", id: "task_start_time", step: 900 %>
+                </div>
+
+                <!-- End Date -->
+                <div class="mb-3">
+                  <label for="task_end_date" class="form-label">End Date</label>
+                  <%= f.date_field :end_date, class: "form-control", id: "task_end_date" %>
+                </div>
+
+                <!-- End Time -->
+                <div class="mb-3">
+                  <label for="task_end_time" class="form-label">End Time</label>
+                  <%= f.time_field :end_time, class: "form-control", id: "task_end_time", step: 900 %>
+                </div>
+
+                <!-- Duration -->
+                <div class="mb-3">
+                  <label for="task_duration" class="form-label">Duration (days)</label>
+                  <%= f.number_field :duration, class: "form-control", id: "task_duration", min: 1, placeholder: "Auto-calculated from dates" %>
+                </div>
+
+                <!-- Responsible -->
+                <div class="mb-3">
+                  <label for="task_responsible_user_id" class="form-label">Assigned Worker (Responsible)</label>
+                  <%= f.select :responsible_user_id,
+                      options_for_select(@all_users.map { |user| ["#{user.name} - #{user.job || 'No title'}", user.id] }, nil),
+                      { include_blank: "Select a team member" },
+                      { class: "form-control", id: "task_responsible_user_id" } %>
+                </div>
+
+                <!-- Feature (Optional) -->
+                <div class="mb-3">
+                  <label for="task_project_feature_id" class="form-label">Feature (Optional)</label>
+                  <%= f.select :project_feature_id,
+                      options_for_select(@project_features.map { |feature| [feature.name, feature.id] }, nil),
+                      { include_blank: "Select a feature (optional)" },
+                      { class: "form-control", id: "task_project_feature_id" } %>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <%= f.submit "Create Task", class: "btn btn-primary" %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Project Settings Modal -->
+  <div class="modal fade" id="projectSettingsModal" tabindex="-1" aria-labelledby="projectSettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="projectSettingsModalLabel">Project Information</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div>
+            <!-- Settings Tabs -->
+            <ul class="nav nav-tabs mb-3" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="information-tab" data-bs-toggle="tab" data-bs-target="#information-panel" type="button" role="tab">
+                  Information
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="team-tab" data-bs-toggle="tab" data-bs-target="#team-panel" type="button" role="tab">
+                  Team Members
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="features-tab" data-bs-toggle="tab" data-bs-target="#features-panel" type="button" role="tab">
+                  Features
+                </button>
+              </li>
+            </ul>
+
+            <!-- Tab Panels -->
+            <div class="tab-content">
+              <!-- Information Panel -->
+              <div class="tab-pane fade show active" id="information-panel" role="tabpanel">
+                <!-- Change Background Button (if user owns project) -->
+                <% if @project.user == current_user %>
+                  <div class="change-background-container" style="margin-bottom: 1.5rem;">
+                    <%= form_with url: project_path(@project), method: :patch, local: true, multipart: true, class: "background-form", id: "background-form-modal" do |f| %>
+                      <%= hidden_field_tag :field, 'background_image' %>
+                      <%= f.file_field :background_image, accept: "image/*", class: "background-file-input", style: "display: none;", onchange: "this.form.submit();" %>
+                      <button type="button" class="change-background-btn" onclick="document.querySelector('#background-form-modal .background-file-input').click();">
+                        <i class="bi bi-image"></i>
+                        Change Background
+                      </button>
+                    <% end %>
+                  </div>
+                <% end %>
+                
+                <h2>Description</h2>
+                
+                <!-- Project Description -->
+                <div class="project-info-field" data-controller="inline-edit" data-field="description">
+                  <div class="field-display">
+                    <div class="field-label">
+                      <% if @project.user == current_user %>
+                        <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+                      <% end %>
+                    </div>
+                    <div class="field-value"><%= @project.description || 'No description' %></div>
+                  </div>
+                  <% if @project.user == current_user %>
+                    <div class="field-edit" style="display: none;">
+                      <textarea class="form-control" rows="4" data-inline-edit-target="input"><%= @project.description %></textarea>
+                      <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+                        <i class="bi bi-check"></i> Save
+                      </button>
+                      <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+                        <i class="bi bi-x"></i> Cancel
+                      </button>
+                    </div>
+                  <% end %>
+                </div>
+
+                <!-- Contributors -->
+                <h2>Contributors</h2>
+                <% if @contributors.empty? %>
+                  <p style="color: rgba(255, 255, 255, 0.6);">No contributors yet.</p>
+                <% end %>
+                <div class="team-members-container">
+                  <div class="team-members-grid">
+                    <% @contributors.each do |contributor| %>
+                      <% is_friend = @friend_ids.include?(contributor.id) %>
+                      <div class="team-member-card">
+                        <div class="team-member-avatar">
+                          <% if contributor.avatar.attached? %>
+                            <%= image_tag contributor.avatar, class: "avatar-medium" %>
+                          <% else %>
+                            <div class="avatar-placeholder-medium">
+                              <i class="bi bi-person-circle"></i>
+                            </div>
+                          <% end %>
+                        </div>
+                        
+                        <div class="team-member-info">
+                          <div class="team-member-name"><%= contributor.name %></div>
+                          <div class="team-member-separator"></div>
+                          <div class="team-member-job"><%= contributor.job || 'No title' %></div>
+                        </div>
+                        
+                        <div class="team-member-actions">
+                          <div class="friend-indicator" title="<%= is_friend ? 'Friend' : 'Not a friend' %>">
+                            <i class="bi bi-person-check-fill" style="color: <%= is_friend ? '#10b981' : '#6b7280' %>;"></i>
+                          </div>
+                          <% if @project.user == current_user %>
+                            <div class="remove-member-btn">
+                              <%= link_to project_project_contributor_path(@project, @project.project_contributors.find_by(user_id: contributor.id)), 
+                                  data: { turbo_method: :delete, turbo_confirm: "Are you sure you want to remove #{contributor.name} from this project?" },
+                                  class: "remove-icon" do %>
+                                <i class="bi bi-x-circle-fill" style="color: #ef4444;"></i>
+                              <% end %>
+                            </div>
+                          <% end %>
+                        </div>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+
+                <% if @project.user == current_user %>
+                  <div style="margin-top: 1rem;">
+                    <h3 style="margin-bottom: 0.5rem;">Add Contributor</h3>
+                    <% assigned_user_ids = @project.project_contributors.pluck(:user_id) %>
+                    <% available_users = @all_users.reject { |u| u.id == @project.user_id || assigned_user_ids.include?(u.id) } %>
+                    <%= form_with url: project_project_contributors_path(@project), method: :post, data: { turbo_frame: "new_contributor" } do %>
+                      <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                        <%= select_tag :user_id,
+                          options_from_collection_for_select(available_users, :id, ->(u) { "#{u.name} - #{u.job}" }),
+                          prompt: "Select user",
+                          class: "form-select",
+                          style: "min-width: 240px;" %>
+                        <%= submit_tag "Add", class: "btn btn-primary" %>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
+
+                <!-- Start Date -->
+                <div class="project-info-field" data-controller="inline-edit" data-field="start_date">
+                  <div class="field-display">
+                    <div class="field-label">
+                      <% if @project.user == current_user %>
+                        <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+                      <% end %>
+                      <span>Start Date</span>
+                    </div>
+                    <div class="field-value date-value">
+                      <i class="bi bi-calendar"></i>
+                      <span><%= @project.start_date ? @project.start_date.strftime('%Y-%m-%d') : 'Not set' %></span>
+                    </div>
+                  </div>
+                  <% if @project.user == current_user %>
+                    <div class="field-edit" style="display: none;">
+                      <input type="date" class="form-control" value="<%= @project.start_date ? @project.start_date.strftime('%Y-%m-%d') : '' %>" data-inline-edit-target="input">
+                      <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+                        <i class="bi bi-check"></i> Save
+                      </button>
+                      <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+                        <i class="bi bi-x"></i> Cancel
+                      </button>
+                    </div>
+                  <% end %>
+                </div>
+
+                <!-- End Date -->
+                <div class="project-info-field" data-controller="inline-edit" data-field="end_date">
+                  <div class="field-display">
+                    <div class="field-label">
+                      <% if @project.user == current_user %>
+                        <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+                      <% end %>
+                      <span>End Date</span>
+                    </div>
+                    <div class="field-value date-value">
+                      <i class="bi bi-calendar"></i>
+                      <span><%= @project.end_date ? @project.end_date.strftime('%Y-%m-%d') : 'Not set' %></span>
+                    </div>
+                  </div>
+                  <% if @project.user == current_user %>
+                    <div class="field-edit" style="display: none;">
+                      <input type="date" class="form-control" value="<%= @project.end_date ? @project.end_date.strftime('%Y-%m-%d') : '' %>" data-inline-edit-target="input">
+                      <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+                        <i class="bi bi-check"></i> Save
+                      </button>
+                      <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+                        <i class="bi bi-x"></i> Cancel
+                      </button>
+                    </div>
+                  <% end %>
+                </div>
+
+                <!-- Budget (only if user owns project) -->
+                <% if @project.user == current_user %>
+                  <div class="project-info-field" data-controller="inline-edit" data-field="budget">
+                    <div class="field-display">
+                      <div class="field-label">
+                        <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+                        <span>Budget</span>
+                      </div>
+                      <div class="field-value">
+                        <%= @project.currency || 'USD' %> <%= @project.budget || 'Not set' %>
+                      </div>
+                    </div>
+                    <div class="field-edit" style="display: none;">
+                      <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <select class="form-control" style="flex: 0 0 100px;" data-inline-edit-target="currencyInput">
+                          <option value="USD" <%= 'selected' if @project.currency == 'USD' %>>USD</option>
+                          <option value="EUR" <%= 'selected' if @project.currency == 'EUR' %>>EUR</option>
+                          <option value="JPY" <%= 'selected' if @project.currency == 'JPY' %>>JPY</option>
+                        </select>
+                        <input type="text" class="form-control" value="<%= @project.budget %>" placeholder="Amount" data-inline-edit-target="input">
+                      </div>
+                      <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#saveBudget">
+                        <i class="bi bi-check"></i> Save
+                      </button>
+                      <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+                        <i class="bi bi-x"></i> Cancel
+                      </button>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+
+              <!-- Team Members Panel -->
+              <div class="tab-pane fade" id="team-panel" role="tabpanel">
+                <h2>Team members list</h2>
+                
+                <!-- Search Bar -->
+                <div class="team-search-section">
+                  <div class="team-search-form">
+                    <div class="search-input-group">
+                      <i class="bi bi-search search-icon"></i>
+                      <input type="text" class="form-control search-input" placeholder="Search for a team member...">
+                    </div>
+                    <button class="btn btn-secondary advanced-search-btn">
+                      Advanced search
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Team Members List -->
+                <div class="team-members-container">
+                  <div class="team-members-grid">
+                    <% @contributors.each do |contributor| %>
+                      <% is_friend = @friend_ids.include?(contributor.id) %>
+                      <div class="team-member-card">
+                        <!-- Left: Avatar -->
+                        <div class="team-member-avatar">
+                          <% if contributor.avatar.attached? %>
+                            <%= image_tag contributor.avatar, class: "avatar-medium" %>
+                          <% else %>
+                            <div class="avatar-placeholder-medium">
+                              <i class="bi bi-person-circle"></i>
+                            </div>
+                          <% end %>
+                        </div>
+                        
+                        <!-- Middle: Name and Job -->
+                        <div class="team-member-info">
+                          <div class="team-member-name"><%= contributor.name %></div>
+                          <div class="team-member-separator"></div>
+                          <div class="team-member-job"><%= contributor.job || 'No title' %></div>
+                        </div>
+                        
+                        <!-- Right: Friend indicator and Remove button -->
+                        <div class="team-member-actions">
+                          <div class="friend-indicator" title="<%= is_friend ? 'Friend' : 'Not a friend' %>">
+                            <i class="bi bi-person-check-fill" style="color: <%= is_friend ? '#10b981' : '#6b7280' %>;"></i>
+                          </div>
+                          <% if @project.user == current_user %>
+                            <div class="remove-member-btn">
+                              <%= link_to project_project_contributor_path(@project, @project.project_contributors.find_by(user_id: contributor.id)), 
+                                  data: { turbo_method: :delete, turbo_confirm: "Are you sure you want to remove #{contributor.name} from this project?" },
+                                  class: "remove-icon" do %>
+                                <i class="bi bi-x-circle-fill" style="color: #ef4444;"></i>
+                              <% end %>
+                            </div>
+                          <% end %>
+                        </div>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Features Panel -->
+              <div class="tab-pane fade" id="features-panel" role="tabpanel" data-controller="view-switcher">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                  <h2 style="margin: 0;">Feature list</h2>
+                  <% if @project.user == current_user %>
+                    <%= link_to new_project_project_feature_path(@project), class: "btn btn-primary", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
+                      <i class="bi bi-plus-circle"></i>
+                      New Feature
+                    <% end %>
+                  <% end %>
+                </div>
+                
+                <!-- Filters and View Switcher -->
+                <div class="features-controls">
+                  <!-- Filter Buttons -->
+                  <div class="feature-filters">
+                    <button class="feature-filter-btn status-work_in_progress" data-status="work_in_progress" data-action="click->view-switcher#toggleStatusFilter">
+                      On going
+                    </button>
+                    <button class="feature-filter-btn status-not_started" data-status="not_started" data-action="click->view-switcher#toggleStatusFilter">
+                      Not started
+                    </button>
+                    <button class="feature-filter-btn status-job_done" data-status="job_done" data-action="click->view-switcher#toggleStatusFilter">
+                      Job done
+                    </button>
+                    <button class="feature-filter-btn status-stand_by" data-status="stand_by" data-action="click->view-switcher#toggleStatusFilter">
+                      Stand by
+                    </button>
+                    <button class="feature-filter-btn filter-my-features" data-action="click->view-switcher#toggleMyFeaturesFilter">
+                      My feature
+                    </button>
+                  </div>
+                  
+                  <!-- Switch View -->
+                  <div class="switch-view-control">
+                    <span class="switch-view-label">Switch view</span>
+                    <button class="switch-view-toggle cards-view" data-action="click->view-switcher#toggleView">
+                      <div class="switch-slider"></div>
+                      <div class="switch-icons">
+                        <i class="bi bi-grid-3x3-gap" data-view-icon="cards"></i>
+                        <i class="bi bi-table" data-view-icon="table"></i>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Features Content Container with Scroll -->
+                <div class="features-scroll-container">
+                  <!-- Features Cards View -->
+                  <div class="features-cards-container" style="display: block;">
+                    <div class="features-grid">
+                      <% @project_features.each do |feature| %>
+                        <% is_my_feature = feature.responsible_contributors.include?(current_user) || feature.accountable_contributors.include?(current_user) %>
+                        <% is_responsible = feature.responsible_contributors.include?(current_user) %>
+                        <% is_accountable = feature.accountable_contributors.include?(current_user) %>
+                        
+                        <div class="feature-card-wrapper">
+                          <%= link_to project_project_feature_path(@project, feature), class: "feature-card status-#{feature.status} feature-link", data: { my_feature: is_my_feature, turbo_frame: "_top" } do %>
+                            <div class="feature-name"><%= feature.name %></div>
+                            <div class="feature-status">
+                              <% if feature.status == 'work_in_progress' %>
+                                On Going
+                              <% elsif feature.status == 'stand_by' %>
+                                Stand By
+                              <% else %>
+                                <%= feature.status.humanize %>
+                              <% end %>
+                            </div>
+                            <% if feature.overdue? %>
+                              <div class="overdue-indicator" title="This feature's end date is overdue">
+                                <i class="bi bi-exclamation-circle-fill"></i>
+                              </div>
+                            <% end %>
+                            <% if is_my_feature %>
+                              <div class="my-feature-indicator">
+                                <i class="bi bi-person-fill"></i>
+                              </div>
+                            <% end %>
+                          <% end %>
+                        </div>
+                      <% end %>
+                    </div>
+                  </div>
+                  
+                  <!-- Features Table View -->
+                  <div class="features-table-container" style="display: none;" data-controller="features-table">
+                    <table class="features-table">
+                      <thead>
+                        <tr>
+                          <th class="column-name">
+                            <div class="header-content">
+                              <span>Name</span>
+                              <div class="header-buttons">
+                                <div class="dropdown">
+                                  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Toggle Columns">
+                                    <i class="bi bi-list"></i>
+                                  </button>
+                                  <ul class="dropdown-menu">
+                                    <li><button class="dropdown-item column-toggle-capsule" data-column="start-date" title="Toggle Start Date column">
+                                      <i class="bi bi-eye-slash-fill"></i> Start Date
+                                    </button></li>
+                                    <li><button class="dropdown-item column-toggle-capsule" data-column="end-date" title="Toggle End Date column">
+                                      <i class="bi bi-eye-slash-fill"></i> End Date
+                                    </button></li>
+                                    <li><button class="dropdown-item column-toggle-capsule" data-column="status" title="Toggle Status column">
+                                      <i class="bi bi-eye-slash-fill"></i> Status
+                                    </button></li>
+                                    <li><button class="dropdown-item column-toggle-capsule" data-column="responsible" title="Toggle Responsible column">
+                                      <i class="bi bi-eye-slash-fill"></i> Responsible
+                                    </button></li>
+                                    <li><button class="dropdown-item column-toggle-capsule" data-column="accountable" title="Toggle Accountable column">
+                                      <i class="bi bi-eye-slash-fill"></i> Accountable
+                                    </button></li>
+                                  </ul>
+                                </div>
+                              </div>
+                            </div>
+                          </th>
+                          <th class="column-toggle" data-column="start-date" style="display: none;">
+                            <div class="header-content">
+                              <span>Start Date</span>
+                              <div class="header-buttons">
+                                <button class="toggle-btn" data-column="start-date" title="Hide Start Date column">
+                                  <i class="bi bi-eye-slash"></i>
+                                </button>
+                              </div>
+                            </div>
+                          </th>
+                          <th class="column-toggle" data-column="end-date" style="display: none;">
+                            <div class="header-content">
+                              <span>End Date</span>
+                              <div class="header-buttons">
+                                <button class="toggle-btn" data-column="end-date" title="Hide End Date column">
+                                  <i class="bi bi-eye-slash"></i>
+                                </button>
+                              </div>
+                            </div>
+                          </th>
+                          <th class="column-toggle" data-column="status" style="display: none;">
+                            <div class="header-content">
+                              <span>Status</span>
+                              <div class="header-buttons">
+                                <button class="toggle-btn" data-column="status" title="Hide Status column">
+                                  <i class="bi bi-eye-slash"></i>
+                                </button>
+                              </div>
+                            </div>
+                          </th>
+                          <th class="column-toggle" data-column="responsible" style="display: none;">
+                            <div class="header-content">
+                              <span>Responsible</span>
+                              <div class="header-buttons">
+                                <button class="toggle-btn" data-column="responsible" title="Hide Responsible column">
+                                  <i class="bi bi-eye-slash"></i>
+                                </button>
+                              </div>
+                            </div>
+                          </th>
+                          <th class="column-toggle" data-column="accountable" style="display: none;">
+                            <div class="header-content">
+                              <span>Accountable</span>
+                              <div class="header-buttons">
+                                <button class="toggle-btn" data-column="accountable" title="Hide Accountable column">
+                                  <i class="bi bi-eye-slash"></i>
+                                </button>
+                              </div>
+                            </div>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% @project_features.each do |feature| %>
+                          <% is_my_feature = feature.responsible_contributors.include?(current_user) || feature.accountable_contributors.include?(current_user) %>
+                          <tr data-my-feature="<%= is_my_feature %>">
+                            <td class="column-name status-<%= feature.status %>">
+                              <%= link_to project_project_feature_path(@project, feature), class: "feature-link feature-cell-link", data: { turbo_frame: "_top" } do %>
+                                <%= feature.name %>
+                              <% end %>
+                            </td>
+                            <td class="column-data" data-column="start-date" style="display: none;">
+                              <%= feature.start_date&.strftime("%Y-%m-%d") || "-" %>
+                            </td>
+                            <td class="column-data" data-column="end-date" style="display: none;">
+                              <%= feature.end_date&.strftime("%Y-%m-%d") || "-" %>
+                            </td>
+                            <td class="column-data" data-column="status" style="display: none;">
+                              <span class="status-badge <%= feature.status %>">
+                                <% if feature.status == 'work_in_progress' %>
+                                  On Going
+                                <% elsif feature.status == 'stand_by' %>
+                                  Stand By
+                                <% else %>
+                                  <%= feature.status.humanize %>
+                                <% end %>
+                              </span>
+                            </td>
+                            <td class="column-data" data-column="responsible" style="display: none;">
+                              <% if feature.responsible_contributors.any? %>
+                                <% feature.responsible_contributors.each do |contributor| %>
+                                  <div class="contributor-info">
+                                    <%= contributor.name %>
+                                  </div>
+                                <% end %>
+                              <% else %>
+                                -
+                              <% end %>
+                            </td>
+                            <td class="column-data" data-column="accountable" style="display: none;">
+                              <% if feature.accountable_contributors.any? %>
+                                <% feature.accountable_contributors.each do |contributor| %>
+                                  <div class="contributor-info">
+                                    <%= contributor.name %>
+                                  </div>
+                                <% end %>
+                              <% else %>
+                                -
+                              <% end %>
+                            </td>
+                          </tr>
+                        <% end %>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
-<!-- Timeline Section -->
-<h3 class="mt-4">Timeline View</h3>
-<%= render 'timeline_view', project: @project %>

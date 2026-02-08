@@ -1,0 +1,35 @@
+<div class="panel-header">
+  <h2>Projects I'm Contributing To</h2>
+</div>
+
+<% if contributing_projects&.any? %>
+  <div class="projects-grid">
+    <% contributing_projects.each do |project| %>
+      <div class="project-card">
+        <%= link_to project_path(project), class: "project-link" do %>
+          <div class="project-header">
+            <h3 class="project-name"><%= project.name %></h3>
+            <span class="project-owner">by <%= project.user.name %></span>
+          </div>
+          <p class="project-description"><%= truncate(project.description, length: 100) %></p>
+          <div class="project-stats">
+            <div class="stat">
+              <i class="bi bi-list-task"></i>
+              <span><%= project.project_features.count %> features</span>
+            </div>
+            <div class="stat">
+              <i class="bi bi-person"></i>
+              <span>Contributor</span>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+<% else %>
+  <div class="empty-state">
+    <i class="bi bi-people"></i>
+    <h3>Not contributing to any projects</h3>
+    <p>You'll see projects you're assigned to here.</p>
+  </div>
+<% end %>

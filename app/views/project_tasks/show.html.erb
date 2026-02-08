@@ -1,0 +1,388 @@
+<div class="new-dashboard task-show">
+  <% can_edit_task = @project.user == current_user || @task.responsible_users.include?(current_user) || @task.accountable_users.include?(current_user) %>
+  <% can_delete_task = @project.user == current_user %>
+
+  <div class="page-title" style="display: flex; justify-content: space-between; align-items: center;">
+    <h1><%= @task.name %></h1>
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <% if can_delete_task %>
+        <%= link_to project_task_path(@project, @task),
+                    class: "btn btn-danger",
+                    data: { turbo_method: :delete, turbo_confirm: "Delete this task? This can't be undone." },
+                    style: "display: flex; align-items: center; gap: 0.5rem;" do %>
+          <i class="bi bi-trash"></i>
+          Delete Task
+        <% end %>
+      <% end %>
+      <%= link_to project_path(@project), class: "btn btn-outline-secondary", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
+        <i class="bi bi-arrow-left"></i>
+        Back to Project
+      <% end %>
+    </div>
+  </div>
+
+  <div class="project-info-field" data-controller="inline-edit" data-field="name">
+    <div class="field-display">
+      <div class="field-label">
+        <% if can_edit_task %>
+          <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+        <% end %>
+        <span>Name</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value"><%= @task.name %></div>
+    </div>
+    <% if can_edit_task %>
+      <div class="field-edit" style="display: none;">
+        <input type="text" class="form-control" value="<%= @task.name %>" data-inline-edit-target="input">
+        <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+          <i class="bi bi-check"></i> Save
+        </button>
+        <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+          <i class="bi bi-x"></i> Cancel
+        </button>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="project-info-field" data-controller="inline-edit" data-field="status">
+    <div class="field-display">
+      <div class="field-label">
+        <% if can_edit_task %>
+          <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+        <% end %>
+        <span>Status</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value">
+        <span class="feature-status-badge status-<%= @task.status %>">
+          <% if @task.status == 'work_in_progress' %>
+            On Going
+          <% elsif @task.status == 'stand_by' %>
+            Stand By
+          <% else %>
+            <%= @task.status.humanize %>
+          <% end %>
+        </span>
+      </div>
+    </div>
+    <% if can_edit_task %>
+      <div class="field-edit" style="display: none;">
+        <select class="form-control" data-inline-edit-target="input">
+          <option value="not_started" <%= 'selected' if @task.status == 'not_started' %>>Not Started</option>
+          <option value="work_in_progress" <%= 'selected' if @task.status == 'work_in_progress' %>>On Going</option>
+          <option value="stand_by" <%= 'selected' if @task.status == 'stand_by' %>>Stand By</option>
+          <option value="job_done" <%= 'selected' if @task.status == 'job_done' %>>Job Done</option>
+        </select>
+        <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+          <i class="bi bi-check"></i> Save
+        </button>
+        <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+          <i class="bi bi-x"></i> Cancel
+        </button>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="project-info-field" data-controller="inline-edit" data-field="start_date">
+    <div class="field-display">
+      <div class="field-label">
+        <% if can_edit_task %>
+          <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+        <% end %>
+        <span>Start Date</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value date-value">
+        <i class="bi bi-calendar"></i>
+        <span><%= @task.start_date ? @task.start_date.strftime('%Y-%m-%d') : 'Not set' %></span>
+      </div>
+    </div>
+    <% if can_edit_task %>
+      <div class="field-edit" style="display: none;">
+        <input type="date" class="form-control" value="<%= @task.start_date ? @task.start_date.strftime('%Y-%m-%d') : '' %>" data-inline-edit-target="input">
+        <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+          <i class="bi bi-check"></i> Save
+        </button>
+        <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+          <i class="bi bi-x"></i> Cancel
+        </button>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="project-info-field" data-controller="inline-edit" data-field="start_time">
+    <div class="field-display">
+      <div class="field-label">
+        <% if can_edit_task %>
+          <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+        <% end %>
+        <span>Start Time</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value">
+        <%= @task.start_time ? @task.start_time.strftime('%H:%M') : 'Not set' %>
+      </div>
+    </div>
+    <% if can_edit_task %>
+      <div class="field-edit" style="display: none;">
+        <input type="time" class="form-control" value="<%= @task.start_time ? @task.start_time.strftime('%H:%M') : '' %>" data-inline-edit-target="input">
+        <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+          <i class="bi bi-check"></i> Save
+        </button>
+        <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+          <i class="bi bi-x"></i> Cancel
+        </button>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="project-info-field" data-controller="inline-edit" data-field="end_date">
+    <div class="field-display">
+      <div class="field-label">
+        <% if can_edit_task %>
+          <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+        <% end %>
+        <span>End Date</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value date-value">
+        <i class="bi bi-calendar"></i>
+        <span><%= @task.end_date ? @task.end_date.strftime('%Y-%m-%d') : 'Not set' %></span>
+      </div>
+    </div>
+    <% if can_edit_task %>
+      <div class="field-edit" style="display: none;">
+        <input type="date" class="form-control" value="<%= @task.end_date ? @task.end_date.strftime('%Y-%m-%d') : '' %>" data-inline-edit-target="input">
+        <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+          <i class="bi bi-check"></i> Save
+        </button>
+        <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+          <i class="bi bi-x"></i> Cancel
+        </button>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="project-info-field" data-controller="inline-edit" data-field="end_time">
+    <div class="field-display">
+      <div class="field-label">
+        <% if can_edit_task %>
+          <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+        <% end %>
+        <span>End Time</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value">
+        <%= @task.end_time ? @task.end_time.strftime('%H:%M') : 'Not set' %>
+      </div>
+    </div>
+    <% if can_edit_task %>
+      <div class="field-edit" style="display: none;">
+        <input type="time" class="form-control" value="<%= @task.end_time ? @task.end_time.strftime('%H:%M') : '' %>" data-inline-edit-target="input">
+        <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+          <i class="bi bi-check"></i> Save
+        </button>
+        <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+          <i class="bi bi-x"></i> Cancel
+        </button>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="project-info-field" data-controller="inline-edit" data-field="duration">
+    <div class="field-display">
+      <div class="field-label">
+        <% if can_edit_task %>
+          <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+        <% end %>
+        <span>Duration</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value">
+        <%= @task.duration.present? ? "#{@task.duration} #{@task.duration == 1 ? 'day' : 'days'}" : 'Not set' %>
+      </div>
+    </div>
+    <% if can_edit_task %>
+      <div class="field-edit" style="display: none;">
+        <input type="number" min="1" class="form-control" value="<%= @task.duration %>" data-inline-edit-target="input">
+        <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+          <i class="bi bi-check"></i> Save
+        </button>
+        <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+          <i class="bi bi-x"></i> Cancel
+        </button>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="project-info-field" data-controller="inline-edit" data-field="priority">
+    <div class="field-display">
+      <div class="field-label">
+        <% if can_edit_task %>
+          <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+        <% end %>
+        <span>Priority</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value">
+        <%= @task.priority.present? ? @task.priority.humanize : 'Not set' %>
+      </div>
+    </div>
+    <% if can_edit_task %>
+      <div class="field-edit" style="display: none;">
+        <select class="form-control" data-inline-edit-target="input">
+          <option value="">None</option>
+          <option value="high" <%= 'selected' if @task.priority == 'high' %>>High</option>
+          <option value="medium" <%= 'selected' if @task.priority == 'medium' %>>Medium</option>
+          <option value="low" <%= 'selected' if @task.priority == 'low' %>>Low</option>
+        </select>
+        <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+          <i class="bi bi-check"></i> Save
+        </button>
+        <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+          <i class="bi bi-x"></i> Cancel
+        </button>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="project-info-field" data-controller="inline-edit" data-field="project_feature_id">
+    <div class="field-display">
+      <div class="field-label">
+        <% if can_edit_task %>
+          <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+        <% end %>
+        <span>Feature</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value">
+        <% if @task.project_feature.present? %>
+          <%= link_to @task.project_feature.name, project_project_feature_path(@project, @task.project_feature) %>
+        <% else %>
+          Not assigned
+        <% end %>
+      </div>
+    </div>
+    <% if can_edit_task %>
+      <div class="field-edit" style="display: none;">
+        <select class="form-control" data-inline-edit-target="input">
+          <option value="">Not assigned</option>
+          <% @project_features.each do |feature| %>
+            <option value="<%= feature.id %>" <%= 'selected' if @task.project_feature_id == feature.id %>>
+              <%= feature.name %>
+            </option>
+          <% end %>
+        </select>
+        <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+          <i class="bi bi-check"></i> Save
+        </button>
+        <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+          <i class="bi bi-x"></i> Cancel
+        </button>
+      </div>
+    <% end %>
+  </div>
+
+  <% responsible_contributor = @task.responsible_users.first %>
+  <div class="project-info-field" data-controller="inline-edit" data-field="responsible_user_id">
+    <div class="field-display">
+      <div class="field-label">
+        <% if can_edit_task %>
+          <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+        <% end %>
+        <span>Responsible</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value" data-inline-edit-target="display">
+        <% if responsible_contributor %>
+          <div class="contributor-item">
+            <span class="contributor-name"><%= responsible_contributor.name %></span>
+            <% if responsible_contributor.job.present? %>
+              <span class="contributor-job"><%= responsible_contributor.job %></span>
+            <% end %>
+          </div>
+        <% else %>
+          <span class="no-contributors">Not assigned</span>
+        <% end %>
+      </div>
+    </div>
+    <% if can_edit_task %>
+      <div class="field-edit" style="display: none;">
+        <select class="form-control" data-inline-edit-target="input">
+          <option value="0">None</option>
+          <% @all_users.each do |user| %>
+            <option value="<%= user.id %>" <%= 'selected' if responsible_contributor&.id == user.id %>>
+              <%= user.name %> - <%= user.job %>
+            </option>
+          <% end %>
+        </select>
+        <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+          <i class="bi bi-check"></i> Save
+        </button>
+        <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+          <i class="bi bi-x"></i> Cancel
+        </button>
+      </div>
+    <% end %>
+  </div>
+
+  <% accountable_contributor = @task.accountable_users.first %>
+  <div class="project-info-field" data-controller="inline-edit" data-field="accountable_user_id">
+    <div class="field-display">
+      <div class="field-label">
+        <% if can_edit_task %>
+          <i class="bi bi-pencil-square edit-icon" data-action="click->inline-edit#edit"></i>
+        <% end %>
+        <span>Accountable</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value" data-inline-edit-target="display">
+        <% if accountable_contributor %>
+          <div class="contributor-item">
+            <span class="contributor-name"><%= accountable_contributor.name %></span>
+            <% if accountable_contributor.job.present? %>
+              <span class="contributor-job"><%= accountable_contributor.job %></span>
+            <% end %>
+          </div>
+        <% else %>
+          <span class="no-contributors">Not assigned</span>
+        <% end %>
+      </div>
+    </div>
+    <% if can_edit_task %>
+      <div class="field-edit" style="display: none;">
+        <select class="form-control" data-inline-edit-target="input">
+          <option value="0">None</option>
+          <% @all_users.each do |user| %>
+            <option value="<%= user.id %>" <%= 'selected' if accountable_contributor&.id == user.id %>>
+              <%= user.name %> - <%= user.job %>
+            </option>
+          <% end %>
+        </select>
+        <button class="btn btn-sm btn-primary save-btn" data-action="click->inline-edit#save">
+          <i class="bi bi-check"></i> Save
+        </button>
+        <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->inline-edit#cancel">
+          <i class="bi bi-x"></i> Cancel
+        </button>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="project-info-field">
+    <div class="field-display">
+      <div class="field-label">
+        <span>Backlog</span>
+      </div>
+      <div class="field-separator"></div>
+      <div class="field-value">
+        <% if @task.in_backlog? %>
+          <%= @task.backlog_type.present? ? @task.backlog_type.humanize : 'Backlog' %>
+        <% else %>
+          No
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

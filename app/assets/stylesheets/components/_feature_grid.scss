@@ -1,0 +1,572 @@
+// View switcher
+.view-switcher {
+  margin: 20px 0;
+  
+  .view-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+  
+  .view-btn {
+    background: #f8f9fa;
+    border: 2px solid #dc3545;
+    color: #dc3545;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    &:hover {
+      background: #dc3545;
+      color: white;
+    }
+    
+    &.active {
+      background: #dc3545;
+      color: white;
+    }
+    
+    i {
+      font-size: 1.1rem;
+    }
+  }
+}
+
+// Features cards container
+.features-cards-container {
+  margin-top: 20px;
+}
+
+// Features grid for cards view
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 12px;
+  margin-top: 20px;
+  
+  .feature-card-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  // Responsive design
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(8, 1fr);
+  }
+  
+  @media (max-width: 992px) {
+    grid-template-columns: repeat(6, 1fr);
+  }
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  @media (max-width: 576px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .feature-card {
+    position: relative;
+    background: $nav-bg;
+    border: 2px solid #dc3545;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    transition: all 0.2s ease;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-decoration: none;
+    color: $white;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(220, 53, 69, 0.2);
+      text-decoration: none;
+      color: $white;
+    }
+    
+    .feature-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+      line-height: 1.2;
+    }
+    
+    .feature-status {
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .approval-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      margin-top: 4px;
+      font-size: 0.7rem;
+      color: #856404;
+      font-weight: 600;
+      
+      i {
+        font-size: 0.8rem;
+      }
+    }
+    
+    .overdue-indicator {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      pointer-events: auto;
+      
+      i {
+        font-size: 1rem;
+        color: #ef4444; // Red
+      }
+    }
+    
+    // Status-based background colors
+    &.status-not_started {
+      background-color: rgba(234, 179, 8, 0.2); // Yellow background
+    }
+    
+    &.status-work_in_progress {
+      background-color: rgba(59, 130, 246, 0.2); // Blue background
+    }
+    
+    &.status-stand_by {
+      background-color: rgba(107, 114, 128, 0.2); // Gray background
+    }
+    
+    &.status-job_done {
+      background-color: rgba(16, 185, 129, 0.2); // Green background
+    }
+    
+    // Priority-based border colors
+    &.priority-high {
+      border-color: #dc3545; // Red border
+      border-width: 3px;
+    }
+    
+    &.priority-medium {
+      border-color: #ffc107; // Yellow/Orange border
+      border-width: 2px;
+    }
+    
+    &.priority-low {
+      border-color: #28a745; // Green border
+      border-width: 2px;
+    }
+    
+    &.priority-none {
+      border-color: rgba(255, 255, 255, 0.3); // Light border for no priority
+      border-width: 2px;
+    }
+    
+    // Feature-based text colors (using CSS custom property set inline)
+    &[data-feature-id] {
+      .feature-name {
+        color: var(--feature-text-color, $white);
+      }
+    }
+    
+    .overdue-indicator i {
+      color: #ef4444; // Red
+    }
+  }
+}
+
+// Features Table Styles
+.features-table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 20px;
+  
+  // Table always sizes to its fixed columns
+  .features-table {
+    width: auto; // Always auto - table sizes to its columns
+    max-width: 100%; // But never exceed container width
+  }
+}
+
+.features-table {
+  width: auto; // Let table size to its columns, not full width
+  border-collapse: collapse;
+  border: 2px solid #dc3545;
+  background-color: white;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  table-layout: fixed; // Fixed layout so columns don't redistribute space
+  min-width: auto; // No minimum width - let it size to content
+  
+  th, td {
+    border: 1px solid #dc3545;
+    padding: 12px 16px;
+    text-align: left;
+    vertical-align: top;
+  }
+  
+  // Header styles - bold red text, slightly larger font
+  thead th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    color: #dc3545;
+    font-size: 1.1rem;
+    position: relative;
+    
+    &.column-name {
+      width: auto; // Will be set by JavaScript
+      min-width: 100px; // Minimum fallback
+      max-width: none; // No maximum - let JavaScript set it
+      height: 80px; // Make header taller
+      vertical-align: top;
+      white-space: nowrap; // Prevent text wrapping
+      
+      .header-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      
+      .header-buttons {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+    }
+    
+    &.column-toggle {
+      width: auto; // Will be set by JavaScript
+      min-width: 80px; // Minimum fallback
+      max-width: none; // No maximum - let JavaScript set it
+      
+      .header-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      
+      .header-buttons {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+    }
+  }
+  
+  // Body styles - red text, smaller than headers
+  tbody {
+    td {
+      color: #dc3545;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      
+      &.column-name {
+        font-weight: 600;
+        width: auto; // Will be set by JavaScript
+        min-width: 100px; // Minimum fallback
+        max-width: none; // No maximum - let JavaScript set it
+        white-space: nowrap; // Prevent text wrapping
+        
+        // Status-based colors for feature names
+        &.status-not_started {
+          background-color: #fff3cd;
+          color: #856404;
+        }
+        
+        &.status-work_in_progress {
+          background-color: #cce5ff;
+          color: #004085;
+        }
+        
+        &.status-stand_by {
+          background-color: #e2e3e5;
+          color: #495057;
+        }
+        
+        &.status-job_done {
+          background-color: #d4edda;
+          color: #155724;
+        }
+      }
+      
+      // Other column data cells
+      &[data-column] {
+        width: auto; // Will be set by JavaScript
+        min-width: 80px; // Minimum fallback
+        max-width: none; // No maximum - let JavaScript set it
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+    
+    tr:hover {
+      background-color: #fff5f5;
+    }
+  }
+  
+  // Toggle button styles
+  .toggle-btn {
+    background: none;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    
+    &:hover {
+      background-color: #dc3545;
+      color: white;
+    }
+    
+    i {
+      font-size: 0.8rem;
+    }
+  }
+  
+  // Sort button styles
+  .sort-btn {
+    background: none;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    display: none; // Hidden by default
+    
+    &:hover {
+      background-color: #dc3545;
+      color: white;
+    }
+    
+    &.active {
+      background-color: #dc3545;
+      color: white;
+    }
+    
+    i {
+      font-size: 0.8rem;
+      display: inline-block;
+      width: 1em;
+      height: 1em;
+      line-height: 1;
+    }
+  }
+  
+  // Dropdown styling for column toggles
+  .dropdown {
+    .btn {
+      padding: 4px 8px;
+      font-size: 0.8rem;
+      border-color: #dc3545;
+      color: #dc3545;
+      
+      &:hover {
+        background-color: #dc3545;
+        color: white;
+        border-color: #dc3545;
+      }
+    }
+    
+    .dropdown-menu {
+      min-width: 150px;
+      border: 1px solid #dc3545;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .dropdown-item {
+      font-size: 0.85rem;
+      padding: 6px 12px;
+      color: #dc3545;
+      cursor: pointer;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      
+      &:hover {
+        background-color: #f8f9fa;
+        color: #dc3545;
+      }
+      
+      &.active {
+        background-color: #dc3545;
+        color: white;
+        
+        &:hover {
+          background-color: #c82333;
+        }
+      }
+    }
+  }
+  
+  
+  // Feature link styles
+  .feature-link {
+    text-decoration: none;
+    font-weight: 600;
+    
+    // Default red color for links
+    color: #dc3545;
+    
+    &:hover {
+      color: #a71e2a;
+      text-decoration: underline;
+    }
+  }
+  
+  // Feature cell link - makes entire cell clickable
+  .feature-cell-link {
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 12px 16px;
+    margin: -12px -16px; // Negative margin to counteract cell padding
+    box-sizing: border-box;
+    
+    &:hover {
+      text-decoration: none;
+    }
+  }
+  
+  // Status-specific link colors
+  .status-not_started .feature-cell-link {
+    color: #856404;
+    
+    &:hover {
+      color: #6c4a03;
+      text-decoration: none;
+    }
+  }
+  
+  .status-work_in_progress .feature-cell-link {
+    color: #004085;
+    
+    &:hover {
+      color: #002752;
+      text-decoration: none;
+    }
+  }
+  
+  .status-job_done .feature-cell-link {
+    color: #155724;
+    
+    &:hover {
+      color: #0d3d1a;
+      text-decoration: none;
+    }
+  }
+  
+  // Status badge styles
+  .status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    
+    &.not_started {
+      background-color: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+    
+    &.work_in_progress {
+      background-color: #cce5ff;
+      color: #004085;
+      border: 1px solid #74c0fc;
+    }
+    
+    &.stand_by {
+      background-color: #e2e3e5;
+      color: #495057;
+      border: 1px solid #adb5bd;
+    }
+    
+    &.job_done {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+  }
+  
+  // Approval badge styles
+  .approval-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    padding: 2px 6px;
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    
+    i {
+      font-size: 0.8rem;
+    }
+  }
+  
+  // Overdue badge styles
+  .overdue-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+    
+    i {
+      font-size: 0.8rem;
+      color: #dc3545;
+    }
+  }
+  
+  // Contributor info styles
+  .contributor-info {
+    margin-bottom: 4px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  
+  // Responsive design
+  @media (max-width: 768px) {
+    th, td {
+      padding: 8px 12px;
+      font-size: 0.9rem;
+    }
+    
+    thead th {
+      font-size: 1rem;
+    }
+    
+    .toggle-btn {
+      padding: 2px;
+      font-size: 0.8rem;
+    }
+  }
+}
