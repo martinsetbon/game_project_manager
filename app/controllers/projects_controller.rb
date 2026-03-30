@@ -14,6 +14,8 @@ class ProjectsController < ApplicationController
       accountable_assignments: :user
     )
     @project_tasks = @project.tasks.includes(
+      :task_segments,
+      :task_checkpoints,
       responsible_assignments: :user,
       accountable_assignments: :user
     ).ordered

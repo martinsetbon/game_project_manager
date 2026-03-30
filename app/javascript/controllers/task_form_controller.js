@@ -49,7 +49,7 @@ export default class extends Controller {
     }
   }
 
-  submit(event) {
+  async submit(event) {
     const startDate = this.startDateTarget?.value
     const endDate = this.endDateTarget?.value
     
@@ -59,8 +59,65 @@ export default class extends Controller {
       if (this.modal) {
         this.modal.show()
       }
+      return
     }
-    // Otherwise, let form submit normally
+    // Otherwise, confirm template choice before submitting
+    event.preventDefault()
+    const shouldSubmit = await this.promptTemplate()
+    if (shouldSubmit) {
+      const form = this.element.closest('form')
+      form?.submit()
+    }
+  }
+
+  async promptTemplate() {
+    const form = this.element.closest('form')
+    if (!form) return false
+    const startDate = this.startDateTarget?.value
+    const endDate = this.endDateTarget?.value
+    if (!startDate || !endDate) return true
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    const duration = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1
+    if (duration < 5) return true
+
+    const useTemplate = await this.confirmTemplate()
+    let input = form.querySelector('input[name="apply_template"]')
+    if (!input) {
+      input = document.createElement('input')
+      input.type = 'hidden'
+      input.name = 'apply_template'
+      form.appendChild(input)
+    }
+    input.value = useTemplate ? 'true' : 'false'
+    return true
+  }
+
+  confirmTemplate() {
+    return new Promise(resolve => {
+      const overlay = document.createElement('div')
+      overlay.className = 'template-confirm-overlay'
+      overlay.innerHTML = `
+        <div class="template-confirm-modal">
+          <div class="template-confirm-title">Apply default segmentation template?</div>
+          <div>This will create segments and checkpoints for the new task.</div>
+          <div class="template-confirm-actions">
+            <button class="btn btn-sm btn-secondary" data-template-action="no">No thanks</button>
+            <button class="btn btn-sm btn-primary" data-template-action="yes">Yes</button>
+          </div>
+        </div>
+      `
+      const cleanup = (result) => {
+        overlay.remove()
+        resolve(result)
+      }
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) cleanup(false)
+      })
+      overlay.querySelector('[data-template-action="no"]').addEventListener('click', () => cleanup(false))
+      overlay.querySelector('[data-template-action="yes"]').addEventListener('click', () => cleanup(true))
+      document.body.appendChild(overlay)
+    })
   }
 
   handleConfirmBacklog() {

@@ -258,3 +258,53 @@
     padding: 0.5rem 0.25rem;
   }
 }
+
+// Linked tasks shift modal
+.linked-tasks-shift-modal {
+  background-color: #0f1118;
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+
+  .modal-header {
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .modal-footer {
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .btn-close {
+    filter: invert(1);
+  }
+
+  .linked-tasks-shift-intro {
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 0.75rem;
+  }
+
+  .linked-tasks-shift-list {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.2);
+
+    .form-check {
+      padding: 0.5rem 0.75rem;
+      margin: 0;
+      border-radius: 4px;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .form-check-input {
+        margin-top: 0.2rem;
+      }
+
+      .form-check-label {
+        cursor: pointer;
+        margin-left: 0.5rem;
+      }
+    }
+  }
+}

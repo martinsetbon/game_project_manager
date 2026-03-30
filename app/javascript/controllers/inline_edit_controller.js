@@ -117,17 +117,58 @@ export default class extends Controller {
         if (response.status === 409) {
           const data = await response.json()
           if (data.status === 'overlap_warning') {
-            const proceed = window.confirm(`${data.message}\n\nDo you want to proceed anyway?`)
+            const isLinkedShift = data.overlap_context === 'linked_shift'
+            let proceed
+            if (isLinkedShift) {
+              proceed = window.confirm(`${data.message}\n\nOK = Proceed anyway (tasks will overlap)\nCancel = Break the link`)
+            } else {
+              proceed = window.confirm(`${data.message}\n\nDo you want to proceed anyway?`)
+            }
             if (proceed) {
-              response = await makeRequest({ proceed: true })
+              const overlapFlags = isLinkedShift ? { link_decision: 'shift', proceed_linked_overlap: true } : { proceed: true }
+              response = await makeRequest(overlapFlags)
+            } else if (isLinkedShift) {
+              response = await makeRequest({ link_decision: 'shift', overlap_decision: 'break' })
             } else {
               return
+            }
+          } else if (data.status === 'linked_shift_warning' || data.status === 'linked_shift_forward_warning') {
+            const moveLinked = window.confirm(
+              `${data.message}\n\n` +
+                'OK = Move all linked tasks with this one.\n' +
+                'Cancel = Abort this save; dates and links stay unchanged.'
+            )
+            if (moveLinked) {
+              const tasksToMove = data.tasks_to_move || data.linked_tasks || []
+              const taskIds = tasksToMove.map((t) => t.id)
+              response = await makeRequest({ link_decision: 'shift', task_ids_to_shift: taskIds })
+            } else {
+              return
+            }
+          } else if (data.status === 'project_start_warning') {
+            const proceed = window.confirm(`${data.message}\n\nDo you want to proceed anyway?`)
+            if (proceed) {
+              response = await makeRequest({ proceed_project_start: true })
+            } else {
+              return
+            }
+          } else if (data.status === 'linked_warning') {
+            const align = window.confirm(`${data.message}\n\nOK = Align linked tasks\nCancel = More options`)
+            if (align) {
+              response = await makeRequest({ link_decision: 'align' })
+            } else {
+              const breakLink = window.confirm('Break the link instead?')
+              if (breakLink) {
+                response = await makeRequest({ link_decision: 'break' })
+              } else {
+                return
+              }
             }
           }
         }
 
-        if (response.ok) {
-          const data = await response.json()
+          if (response.ok) {
+            const data = await response.json()
           console.log('Save response data:', data)
           
           // Check if save was actually successful
@@ -210,6 +251,37 @@ export default class extends Controller {
           if ((fieldName === 'start_date' || fieldName === 'end_date') && projectPath) {
             window.location.reload()
             return
+          }
+
+          if ((fieldName === 'start_date' || fieldName === 'end_date' || fieldName === 'duration') && taskPath) {
+            let startText = document.querySelector('[data-field="start_date"] .field-value span')?.textContent
+            let endText = document.querySelector('[data-field="end_date"] .field-value span')?.textContent
+            if (fieldName === 'duration' && data?.start_date && data?.end_date) {
+              startText = data.start_date
+              endText = data.end_date
+              const endDateField = document.querySelector('[data-field="end_date"] .field-value span')
+              if (endDateField) endDateField.textContent = data.end_date
+            }
+            if (startText && endText) {
+              document.dispatchEvent(new CustomEvent('task:date-updated', {
+                detail: {
+                  start_date: startText,
+                  end_date: endText
+                }
+              }))
+            }
+            if (data?.segments) {
+              document.dispatchEvent(new CustomEvent('task:segments-updated', {
+                detail: {
+                  segments: data.segments,
+                  checkpoints: data.checkpoints || []
+                }
+              }))
+            }
+          }
+          
+          if (data?.linked_notice) {
+            alert(data.linked_notice)
           }
         } else {
           const data = await response.json()

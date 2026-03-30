@@ -9,13 +9,13 @@
   </div>
 
   <!-- Project Folder with Tabs -->
-  <div data-controller="project-tabs">
+  <div data-controller="project-tabs" data-project-tabs-project-id-value="<%= @project.id %>">
     <!-- Tabs Header -->
     <div class="folder-tabs">
-      <button class="folder-tab active" data-project-tabs-target="tabButton" data-tab="tasks" data-action="click->project-tabs#switchTab">
+      <button class="folder-tab" data-project-tabs-target="tabButton" data-tab="tasks" data-action="click->project-tabs#switchTab">
         Task List
       </button>
-      <button class="folder-tab" data-project-tabs-target="tabButton" data-tab="timeline" data-action="click->project-tabs#switchTab">
+      <button class="folder-tab active" data-project-tabs-target="tabButton" data-tab="timeline" data-action="click->project-tabs#switchTab">
         Timeline
       </button>
     </div>
@@ -23,14 +23,24 @@
     <!-- Folder Content -->
     <div class="project-folder folder-content" style="<%= 'background-image: url(' + url_for(@project.background_image) + ');' if @project.background_image.attached? %>">
       <!-- Tasks Tab -->
-      <div class="folder-tab-panel active" data-project-tabs-target="tabPanel" data-tab-panel="tasks" data-controller="view-switcher">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+      <div class="folder-tab-panel" data-project-tabs-target="tabPanel" data-tab-panel="tasks" data-controller="view-switcher">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;">
           <h2 style="margin: 0;">Task list</h2>
           <% if @project.user == current_user %>
-            <%= link_to new_project_task_path(@project), class: "btn btn-primary", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
-              <i class="bi bi-plus-circle"></i>
-              New Task
-            <% end %>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <%= link_to project_project_features_path(@project), class: "btn btn-outline-info", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
+                <i class="bi bi-collection"></i>
+                Features
+              <% end %>
+              <%= link_to new_with_tasks_project_project_features_path(@project), class: "btn btn-outline-primary", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
+                <i class="bi bi-list-task"></i>
+                New feature + tasks
+              <% end %>
+              <%= link_to new_project_task_path(@project), class: "btn btn-primary", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
+                <i class="bi bi-plus-circle"></i>
+                New Task
+              <% end %>
+            </div>
           <% end %>
         </div>
         
@@ -121,10 +131,18 @@
           </div>
           
           <!-- Tasks Table View -->
-          <div class="features-table-container" style="display: none;" data-controller="tasks-table">
+          <div class="features-table-container" style="display: none;" data-controller="tasks-table task-feature-selection" data-task-feature-selection-new-url-value="<%= new_from_tasks_project_project_features_path(@project) %>" data-action="change->task-feature-selection#update">
+            <% if @project.user == current_user %>
+              <div class="mb-2" style="display: flex; justify-content: flex-end;">
+                <a href="#" data-task-feature-selection-target="createBtn" class="btn btn-sm btn-outline-warning" style="display: none;">Create feature from selected tasks</a>
+              </div>
+            <% end %>
             <table class="features-table">
               <thead>
                 <tr>
+                  <% if @project.user == current_user %>
+                    <th class="column-checkbox" style="width: 2.5rem;" title="Select tasks"></th>
+                  <% end %>
                   <th class="column-name">
                     <div class="header-content">
                       <span>Name</span>
@@ -240,6 +258,11 @@
                         data-priority="<%= task.priority || 'none' %>" 
                         data-feature-id="<%= task.project_feature_id || 'none' %>"
                         style="--feature-text-color: <%= feature_text_color(task.project_feature_id) %>;">
+                      <% if @project.user == current_user %>
+                        <td class="column-checkbox" onclick="event.stopPropagation();">
+                          <input type="checkbox" class="form-check-input" data-task-id="<%= task.id %>" data-action="change->task-feature-selection#update" title="Select for feature grouping">
+                        </td>
+                      <% end %>
                       <td class="column-name status-<%= task.status %> priority-<%= task.priority || 'none' %>">
                         <%= task.name %>
                         <% if task.in_backlog? %>
@@ -301,7 +324,7 @@
                   <% end %>
                 <% else %>
                   <tr>
-                    <td colspan="8" style="text-align: center; padding: 3rem; color: rgba(255, 255, 255, 0.6);">
+                    <td colspan="<%= @project.user == current_user ? 9 : 8 %>" style="text-align: center; padding: 3rem; color: rgba(255, 255, 255, 0.6);">
                       <i class="bi bi-inbox" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
                       <p style="margin: 0;">No tasks yet. Create your first task to get started.</p>
                     </td>
@@ -314,90 +337,7 @@
       </div>
 
       <!-- Timeline Tab -->
-      <div class="folder-tab-panel" data-project-tabs-target="tabPanel" data-tab-panel="timeline" data-controller="calendar-timeline">
-        <div class="calendar-timeline-container">
-          <!-- Left Sidebar - Contributor Selection (Google Calendar style) -->
-          <div class="calendar-sidebar" data-calendar-timeline-target="sidebar">
-            <div class="sidebar-header">
-              <h3>Contributors</h3>
-              <% if @project.user == current_user %>
-                <button class="btn btn-sm btn-outline-secondary" 
-                        data-action="click->calendar-timeline#toggleMyTasksOnly" 
-                        data-calendar-timeline-target="myTasksToggle">
-                  My Tasks Only
-                </button>
-              <% end %>
-            </div>
-            
-            <!-- Search Box -->
-            <div class="sidebar-search">
-              <i class="bi bi-search"></i>
-              <input type="text" 
-                     class="form-control" 
-                     placeholder="Search contributors..." 
-                     data-calendar-timeline-target="searchInput"
-                     data-action="input->calendar-timeline#filterContributors">
-            </div>
-            
-            <!-- Contributors List -->
-            <div class="contributors-list" data-calendar-timeline-target="contributorsList">
-              <% @contributors.each do |contributor| %>
-                <% is_current_user = contributor.id == current_user.id %>
-                <% is_selected = is_current_user %>
-                <div class="contributor-item <%= 'selected' if is_selected %>" 
-                     data-contributor-id="<%= contributor.id %>"
-                     data-contributor-name="<%= contributor.name %>"
-                     data-contributor-job="<%= contributor.job || '' %>"
-                     data-action="click->calendar-timeline#toggleContributor">
-                  <div class="contributor-checkbox">
-                    <input type="checkbox" 
-                           <%= 'checked' if is_selected %>
-                           data-calendar-timeline-target="contributorCheckbox">
-                    <span class="checkmark"></span>
-                  </div>
-                  <div class="contributor-info">
-                    <div class="contributor-name"><%= contributor.name %></div>
-                    <% if contributor.job.present? %>
-                      <div class="contributor-job"><%= contributor.job %></div>
-                    <% end %>
-                  </div>
-                  <div class="contributor-color-indicator" style="display: none;"></div>
-                </div>
-              <% end %>
-            </div>
-          </div>
-          
-          <!-- Main Calendar Area (iPhone Calendar style) -->
-          <div class="calendar-main-area">
-            <!-- Calendar Header with Navigation -->
-            <div class="calendar-header">
-              <div class="calendar-nav-group">
-                <button class="calendar-zoom-out-btn" data-action="click->calendar-timeline#zoomOut" data-calendar-timeline-target="monthYear">
-                  <i class="bi bi-chevron-left"></i>
-                  <span class="calendar-month-year-text">January 2025</span>
-                </button>
-                <button class="calendar-today-btn" data-action="click->calendar-timeline#goToToday">
-                  Today
-                </button>
-                <button class="calendar-project-btn project-start-btn" data-action="click->calendar-timeline#goToProjectStart" title="Go to project start">
-                  <i class="bi bi-flag"></i>
-                  Project Start
-                </button>
-                <button class="calendar-project-btn project-end-btn" data-action="click->calendar-timeline#goToProjectEnd" title="Go to project end">
-                  <i class="bi bi-flag-fill"></i>
-                  Project End
-                </button>
-              </div>
-            </div>
-            
-            <!-- Calendar Grid -->
-            <div class="calendar-grid" data-calendar-timeline-target="calendarGrid">
-              <!-- Calendar will be rendered here by JavaScript -->
-            </div>
-          </div>
-        </div>
-        
-        <!-- Tasks Data -->
+      <div class="folder-tab-panel active" data-project-tabs-target="tabPanel" data-tab-panel="timeline">
         <% 
           tasks_data = @project_tasks.select { |t| t.start_date.present? && t.end_date.present? }.map { |t| 
             {
@@ -417,21 +357,156 @@
           
           contributors_data = @contributors.map { |c| { id: c.id, name: c.name || '', job: c.job || '' } }
           is_project_creator = @project.user == current_user
+          feature_templates_detail = is_project_creator ? current_user.feature_templates.order(created_at: :desc).map { |t|
+            { id: t.id, name: t.name, tasks_data: t.tasks_data || [] }
+          } : []
         %>
-        <script type="application/json" data-calendar-timeline-target="tasksData">
-          <%= tasks_data.to_json.html_safe %>
-        </script>
-        <script type="application/json" data-calendar-timeline-target="contributorsData">
-          <%= contributors_data.to_json.html_safe %>
-        </script>
-        <div data-calendar-timeline-target="metadata"
+
+        <div class="timeline-wrapper"
+             data-controller="task-timeline"
+             data-task-timeline-target="wrapper"
+             data-project-id="<%= @project.id %>"
+             data-project-start-date="<%= @project.start_date ? @project.start_date.iso8601 : Date.today.iso8601 %>"
+             data-project-end-date="<%= @project.end_date ? @project.end_date.iso8601 : (Date.today + 365.days).iso8601 %>"
              data-current-user-id="<%= current_user.id %>"
              data-is-project-creator="<%= is_project_creator %>"
-             data-project-start-date="<%= @project.start_date ? @project.start_date.iso8601 : Date.today.iso8601 %>"
-             data-project-end-date="<%= @project.end_date ? @project.end_date.iso8601 : (Date.today + 365.days).iso8601 %>">
+             data-tasks="<%= tasks_data.to_json %>"
+             data-contributors="<%= contributors_data.to_json %>"
+             data-feature-templates-detail-json="<%= feature_templates_detail.to_json %>">
+          <div class="timeline-controls">
+            <div class="timeline-control-buttons">
+              <button class="btn btn-sm btn-outline-secondary" data-action="click->task-timeline#toggleMyTasksFilter" data-task-timeline-target="myTasksToggle">
+                My Tasks Only
+              </button>
+              <button class="btn btn-sm btn-outline-secondary" data-action="click->task-timeline#goToProjectStart">
+                <i class="bi bi-flag"></i>
+                Project Start
+              </button>
+              <button class="btn btn-sm btn-outline-secondary" data-action="click->task-timeline#goToProjectEnd">
+                <i class="bi bi-flag-fill"></i>
+                Project End
+              </button>
+              <button class="btn btn-sm btn-outline-secondary" data-action="click->task-timeline#setZoomDay">Day</button>
+              <button class="btn btn-sm btn-outline-secondary" data-action="click->task-timeline#setZoomMonth">Month</button>
+              <button class="btn btn-sm btn-outline-secondary" data-action="click->task-timeline#setZoomYear">Year</button>
+              <button class="btn btn-sm btn-outline-secondary" data-action="click->task-timeline#setZoomFit">Fit</button>
+            </div>
+          </div>
+
+          <div class="timeline-container-scroll" data-task-timeline-target="scrollContainer">
+            <div class="timeline-contributors-column" data-task-timeline-target="contributorsColumn">
+              <div class="timeline-contributors-header">Contributors</div>
+              <div class="timeline-contributors-list" data-task-timeline-target="contributorsList"></div>
+            </div>
+            <div class="timeline-main-area" data-task-timeline-target="timelineArea">
+              <div class="timeline-header-area" data-task-timeline-target="headerArea"></div>
+              <div class="timeline-rows-area" data-task-timeline-target="rowsArea"></div>
+            </div>
+          </div>
+
+          <% if is_project_creator %>
+            <div class="modal fade" id="timelineCreateKindModal" tabindex="-1" aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content bg-dark text-light border-secondary">
+                  <div class="modal-header border-secondary">
+                    <h5 class="modal-title">What do you want to create?</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body d-flex flex-column gap-2">
+                    <button type="button" class="btn btn-primary" data-action="click->task-timeline#chooseTimelineCreateTask">
+                      Single task
+                    </button>
+                    <button type="button" class="btn btn-outline-info" data-action="click->task-timeline#chooseTimelineCreateFeature">
+                      Feature (group of tasks)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal fade" id="timelineFeatureCreateModal" tabindex="-1" aria-hidden="true">
+              <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                <div class="modal-content bg-dark text-light border-secondary">
+                  <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Create feature from timeline</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <form id="timeline_feature_tasks_form" data-turbo="false" onsubmit="return false;">
+                      <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                          <label class="form-label" for="timeline_feature_name">Feature name</label>
+                          <input type="text" class="form-control" id="timeline_feature_name" required placeholder="e.g. Main character">
+                        </div>
+                        <div class="col-md-3">
+                          <label class="form-label" for="timeline_feature_template_id">Template (optional)</label>
+                          <select class="form-select" id="timeline_feature_template_id" data-action="change->task-timeline#onTimelineFeatureTemplateChange">
+                            <option value="">— None —</option>
+                          </select>
+                        </div>
+                        <div class="col-md-3">
+                          <label class="form-label" for="timeline_feature_anchor_date">Anchor (template start)</label>
+                          <input type="date" class="form-control" id="timeline_feature_anchor_date">
+                        </div>
+                      </div>
+                      <p class="small text-secondary">Pick a template to fill rows (all tasks unassigned on the timeline). Edit dates and assignees before creating. Tasks without dates stay in the task list only.</p>
+                      <div class="table-responsive">
+                        <table class="table table-sm table-dark">
+                          <thead>
+                            <tr>
+                              <th>Task</th>
+                              <th>Start</th>
+                              <th>End</th>
+                              <th>Responsible</th>
+                              <th></th>
+                            </tr>
+                          </thead>
+                          <tbody id="timeline_feature_tasks_tbody"></tbody>
+                        </table>
+                      </div>
+                      <button type="button" class="btn btn-sm btn-outline-light mt-2" data-action="click->task-timeline#addFeatureTaskRow">+ Add row</button>
+                    </form>
+                  </div>
+                  <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" data-action="click->task-timeline#submitTimelineFeatureCreate">Create</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
         </div>
       </div>
 
+    </div>
+
+    <!-- Linked Tasks Shift Modal: choose which linked tasks to move -->
+    <div class="modal fade" id="linkedTasksShiftModal" tabindex="-1" aria-labelledby="linkedTasksShiftModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content linked-tasks-shift-modal">
+          <div class="modal-header">
+            <h5 class="modal-title" id="linkedTasksShiftModalLabel">Move with linked tasks?</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p class="linked-tasks-shift-intro text-secondary small" id="linkedTasksShiftIntro">
+              <strong>Checked</strong> tasks move by the same amount and stay linked.
+              <strong>Unchecked</strong> tasks keep their current dates; the link to this task is removed.
+              Cancel closes this dialog and leaves all tasks (and links) unchanged.
+            </p>
+            <div class="linked-tasks-shift-check-all mb-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="linkedTasksShiftCheckAll">Check all</button>
+            </div>
+            <div class="linked-tasks-shift-list" id="linkedTasksShiftList" style="max-height: 280px; overflow-y: auto;">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel move</button>
+            <button type="button" class="btn btn-primary" id="linkedTasksShiftOk">Apply</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Backlog Warning Modal (moved outside folder-content to avoid z-index issues) -->
@@ -814,13 +889,23 @@
 
               <!-- Features Panel -->
               <div class="tab-pane fade" id="features-panel" role="tabpanel" data-controller="view-switcher">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.5rem;">
                   <h2 style="margin: 0;">Feature list</h2>
                   <% if @project.user == current_user %>
-                    <%= link_to new_project_project_feature_path(@project), class: "btn btn-primary", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
-                      <i class="bi bi-plus-circle"></i>
-                      New Feature
-                    <% end %>
+                    <div class="d-flex gap-2 flex-wrap">
+                      <%= link_to project_project_features_path(@project), class: "btn btn-outline-info", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
+                        <i class="bi bi-table"></i>
+                        All features
+                      <% end %>
+                      <%= link_to new_with_tasks_project_project_features_path(@project), class: "btn btn-outline-primary", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
+                        <i class="bi bi-list-task"></i>
+                        New + tasks
+                      <% end %>
+                      <%= link_to new_project_project_feature_path(@project), class: "btn btn-primary", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
+                        <i class="bi bi-plus-circle"></i>
+                        New Feature
+                      <% end %>
+                    </div>
                   <% end %>
                 </div>
                 

@@ -1,20 +1,43 @@
 class FeatureTemplatesController < ApplicationController
   before_action :authenticate_user!
-  before_action :set_feature_template, only: [:destroy, :apply_to_feature]
+  before_action :set_feature_template, only: [:show, :edit, :update, :destroy, :apply_to_feature]
 
   def index
     @templates = current_user.feature_templates.order(created_at: :desc)
-    render json: { 
-      status: 'success', 
-      templates: @templates.map { |t| 
-        {
-          id: t.id,
-          name: t.name,
-          tasks_count: t.tasks_data&.length || 0,
-          created_at: t.created_at
+    respond_to do |format|
+      format.html
+      format.json do
+        render json: {
+          status: 'success',
+          templates: @templates.map { |t|
+            {
+              id: t.id,
+              name: t.name,
+              tasks_count: t.tasks_data&.length || 0,
+              created_at: t.created_at
+            }
+          }
         }
-      }
-    }
+      end
+    end
+  end
+
+  def show
+    redirect_to edit_feature_template_path(@template)
+  end
+
+  def edit
+    @tasks_data = @template.tasks_data || []
+  end
+
+  def update
+    if @template.update(feature_template_params_web)
+      redirect_to feature_templates_path, notice: 'Template updated.'
+    else
+      @tasks_data = @template.tasks_data || []
+      flash.now[:alert] = @template.errors.full_messages.join(', ')
+      render :edit, status: :unprocessable_entity
+    end
   end
 
   def create
@@ -39,9 +62,15 @@ class FeatureTemplatesController < ApplicationController
 
   def destroy
     if @template.destroy
-      render json: { status: 'success' }
+      respond_to do |format|
+        format.html { redirect_to feature_templates_path, notice: 'Template deleted.' }
+        format.json { render json: { status: 'success' } }
+      end
     else
-      render json: { status: 'error', errors: ['Failed to delete template'] }, status: :unprocessable_entity
+      respond_to do |format|
+        format.html { redirect_to feature_templates_path, alert: 'Could not delete template.' }
+        format.json { render json: { status: 'error', errors: ['Failed to delete template'] }, status: :unprocessable_entity }
+      end
     end
   end
 
@@ -148,7 +177,28 @@ class FeatureTemplatesController < ApplicationController
   def set_feature_template
     @template = current_user.feature_templates.find(params[:id])
   rescue ActiveRecord::RecordNotFound
-    render json: { status: 'error', errors: ['Template not found'] }, status: :not_found
+    respond_to do |format|
+      format.html { redirect_to feature_templates_path, alert: 'Template not found.' }
+      format.json { render json: { status: 'error', errors: ['Template not found'] }, status: :not_found }
+    end
+  end
+
+  def feature_template_params_web
+    permitted = params.require(:feature_template).permit(:name, tasks_data: %i[name duration priority responsible_user_id accountable_user_id])
+    rows = Array(permitted[:tasks_data]).filter_map do |row|
+      name = row[:name].to_s.strip
+      dur = row[:duration].to_i
+      next if name.blank? || dur < 1
+
+      {
+        'name' => name,
+        'duration' => dur,
+        'priority' => row[:priority].presence,
+        'responsible_user_id' => row[:responsible_user_id].present? && row[:responsible_user_id].to_i.positive? ? row[:responsible_user_id].to_i : nil,
+        'accountable_user_id' => row[:accountable_user_id].present? && row[:accountable_user_id].to_i.positive? ? row[:accountable_user_id].to_i : nil
+      }
+    end
+    { name: permitted[:name], tasks_data: rows }
   end
 
   def feature_template_params

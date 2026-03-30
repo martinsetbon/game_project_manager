@@ -1,7 +1,12 @@
 class ProjectFeaturesController < ApplicationController
   before_action :set_project
-  before_action :set_project_feature, except: [:index, :new, :create]
-  before_action :check_permissions, except: [:index, :new, :create]
+  before_action :set_project_feature, except: [:index, :new, :create, :new_from_tasks, :create_from_tasks, :new_with_tasks, :create_with_tasks, :create_from_timeline]
+  before_action :check_permissions, except: [:index, :new, :create, :new_from_tasks, :create_from_tasks, :new_with_tasks, :create_with_tasks, :create_from_timeline]
+  before_action :ensure_project_manager_for_bulk, only: [:new_from_tasks, :create_from_tasks, :new_with_tasks, :create_with_tasks, :create_from_timeline]
+
+  def index
+    @project_features = @project.project_features.includes(:tasks).order(:name)
+  end
 
   def new
     # Only project manager can create features
@@ -267,6 +272,147 @@ class ProjectFeaturesController < ApplicationController
     end
   end
 
+  def new_from_tasks
+    ids = Array(params[:task_ids]).map(&:to_i).reject(&:zero?)
+    if ids.empty?
+      redirect_to project_path(@project), alert: 'Select at least one task.'
+      return
+    end
+    @tasks = @project.tasks.where(id: ids).order(:name)
+    if @tasks.count != ids.size
+      redirect_to project_path(@project), alert: 'Some tasks could not be found.'
+      return
+    end
+    @project_feature = @project.project_features.build
+  end
+
+  def create_from_tasks
+    ids = Array(params[:task_ids]).map(&:to_i).reject(&:zero?)
+    name = params.require(:project_feature).permit(:name)[:name].to_s.strip
+    if name.blank?
+      redirect_to new_from_tasks_project_project_features_path(@project, task_ids: ids), alert: 'Feature name is required.'
+      return
+    end
+    tasks = @project.tasks.where(id: ids)
+    if tasks.count != ids.size
+      redirect_to project_path(@project), alert: 'Invalid task selection.'
+      return
+    end
+
+    dated = tasks.select { |t| t.start_date.present? && t.end_date.present? }
+    fs = dated.map(&:start_date).min || Date.current
+    fe = dated.map(&:end_date).max || fs
+
+    feature = nil
+    ActiveRecord::Base.transaction do
+      feature = @project.project_features.create!(name: name, start_date: fs, end_date: fe, status: 'not_started')
+      tasks.each { |t| t.update!(project_feature_id: feature.id) }
+    end
+
+    redirect_to project_project_feature_path(@project, feature), notice: 'Feature created and tasks grouped successfully.'
+  end
+
+  def new_with_tasks
+    @project_feature = @project.project_features.build
+    @task_templates_json = current_user.feature_templates.order(created_at: :desc).map { |t| { id: t.id, name: t.name } }
+    load_contributors
+  end
+
+  def create_with_tasks
+    name = params.require(:project_feature).permit(:name)[:name].to_s.strip
+    task_rows = Array(params[:tasks]).map(&:to_unsafe_h)
+
+    creator = ProjectFeatureBulkCreator.new(
+      project: @project,
+      creator: current_user,
+      feature_name: name,
+      task_rows: task_rows
+    )
+
+    if params[:proceed_overlaps].to_s != 'true' && creator.overlap_messages.any?
+      flash.now[:overlap_details] = creator.overlap_messages.join("\n")
+      @overlap_retry = true
+      @project_feature = @project.project_features.build(name: name)
+      @submitted_tasks = task_rows
+      load_contributors
+      @task_templates_json = current_user.feature_templates.order(created_at: :desc).map { |t| { id: t.id, name: t.name } }
+      render :new_with_tasks, status: :unprocessable_entity
+      return
+    end
+
+    result = creator.create!(proceed_overlaps: params[:proceed_overlaps].to_s == 'true')
+    if result[:status] == :success
+      redirect_to project_project_feature_path(@project, result[:feature]), notice: 'Feature and tasks were created.'
+    else
+      @project_feature = @project.project_features.build(name: name)
+      @submitted_tasks = task_rows
+      load_contributors
+      @task_templates_json = current_user.feature_templates.order(created_at: :desc).map { |t| { id: t.id, name: t.name } }
+      flash.now[:alert] = result[:errors]&.join(', ') || 'Could not create feature.'
+      render :new_with_tasks, status: :unprocessable_entity
+    end
+  end
+
+  def create_from_timeline
+    name = params[:feature_name].to_s.strip
+    task_rows = timeline_task_rows_param
+
+    creator = ProjectFeatureBulkCreator.new(
+      project: @project,
+      creator: current_user,
+      feature_name: name,
+      task_rows: task_rows
+    )
+
+    if params[:proceed_overlaps].to_s != 'true' && creator.overlap_messages.any?
+      render json: { status: 'overlap_warning', overlaps: creator.overlap_messages }, status: :conflict
+      return
+    end
+
+    result = creator.create!(proceed_overlaps: params[:proceed_overlaps].to_s == 'true')
+    case result[:status]
+    when :success
+      render json: {
+        status: 'success',
+        feature_id: result[:feature].id,
+        task_ids: result[:tasks].map(&:id)
+      }
+    when :overlap
+      render json: { status: 'overlap_warning', overlaps: result[:overlaps] }, status: :conflict
+    else
+      render json: { status: 'error', errors: result[:errors] || ['Unknown error'] }, status: :unprocessable_entity
+    end
+  end
+
+  def save_as_template
+    unless @project_feature.can_edit_details?(current_user)
+      redirect_to project_project_feature_path(@project, @project_feature), alert: 'You cannot create a template from this feature.'
+      return
+    end
+
+    tasks_data = @project_feature.tasks.top_level.order(:order, :id).map do |t|
+      dur = if t.start_date && t.end_date
+              (t.end_date - t.start_date).to_i + 1
+            else
+              (t.duration.presence || 1).to_i
+            end
+      {
+        'name' => t.name,
+        'duration' => dur,
+        'priority' => t.priority,
+        'responsible_user_id' => t.responsible_users.first&.id,
+        'accountable_user_id' => t.accountable_users.first&.id
+      }
+    end
+
+    template_name = "#{@project_feature.name} — template"
+    template = current_user.feature_templates.create!(name: template_name, tasks_data: tasks_data)
+
+    redirect_to edit_feature_template_path(template), notice: 'Template created. You can rename it and adjust task rows below.'
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to project_project_feature_path(@project, @project_feature), alert: e.record.errors.full_messages.join(', ')
+  end
+
   def destroy
     # Store responsible contributors before deletion
     responsible_contributors = @project_feature.responsible_contributors.to_a
@@ -351,6 +497,26 @@ class ProjectFeaturesController < ApplicationController
   end
 
   private
+
+  def ensure_project_manager_for_bulk
+    return if @project.user == current_user
+
+    if request.format.json?
+      render json: { status: 'error', errors: ['Forbidden'] }, status: :forbidden
+    else
+      redirect_to project_path(@project), alert: 'Only the project manager can do that.'
+    end
+    return
+  end
+
+  def timeline_task_rows_param
+    raw = params[:tasks]
+    return [] if raw.blank?
+
+    Array(raw).map do |row|
+      row.respond_to?(:permit) ? row.permit(:name, :start_date, :end_date, :responsible_user_id).to_h : row.to_h
+    end
+  end
 
   def set_project
     @project = Project.find(params[:project_id])

@@ -9,6 +9,10 @@ class Task < ApplicationRecord
   has_many :subtasks, class_name: 'Task', foreign_key: 'parent_task_id', dependent: :destroy
   has_many :task_assignments, dependent: :destroy
   has_many :assigned_users, through: :task_assignments, source: :user
+  has_many :task_segments, dependent: :destroy
+  has_many :task_checkpoints, dependent: :destroy
+  has_many :outgoing_task_links, class_name: 'TaskLink', foreign_key: :source_task_id, dependent: :destroy
+  has_one :incoming_task_link, class_name: 'TaskLink', foreign_key: :target_task_id, dependent: :destroy
   
   # Explicit associations for responsible/accountable users
   has_many :responsible_assignments,
@@ -113,7 +117,7 @@ class Task < ApplicationRecord
     return if backlog_type.present? || (start_date.nil? && end_date.nil?)
     
     if start_date.present? && duration.present? && end_date.nil?
-      self.end_date = start_date + duration.days
+      self.end_date = start_date + (duration - 1).days
     end
   end
 

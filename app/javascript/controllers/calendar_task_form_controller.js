@@ -34,7 +34,7 @@ export default class extends Controller {
     this.element.addEventListener('turbo:submit-end', (e) => this.handleSubmit(e))
   }
 
-  handleSubmitStart(event) {
+  async handleSubmitStart(event) {
     const form = event.target
     const startDate = form.querySelector('#task_start_date')?.value
     const endDate = form.querySelector('#task_end_date')?.value
@@ -42,12 +42,33 @@ export default class extends Controller {
 
     if (!startDate || !endDate || !responsibleId) return
 
-    const tasksDataElement = document.querySelector('[data-calendar-timeline-target="tasksData"]')
+    const duration = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1
+    let useTemplate = null
+    if (duration >= 5) {
+      event.preventDefault()
+      useTemplate = await this.confirmTemplate()
+      let input = form.querySelector('input[name="apply_template"]')
+      if (!input) {
+        input = document.createElement('input')
+        input.type = 'hidden'
+        input.name = 'apply_template'
+        form.appendChild(input)
+      }
+      input.value = useTemplate ? 'true' : 'false'
+    }
+
+    const tasksDataElement = document.querySelector('[data-task-timeline-target="wrapper"]')
     if (!tasksDataElement) return
 
     let tasks = []
     try {
-      tasks = JSON.parse(tasksDataElement.textContent) || []
+      let jsonString = tasksDataElement.dataset.tasks || ''
+      if (jsonString.includes('&quot;') || jsonString.includes('&amp;')) {
+        const tempDiv = document.createElement('div')
+        tempDiv.innerHTML = jsonString
+        jsonString = tempDiv.textContent || tempDiv.innerText || jsonString
+      }
+      tasks = JSON.parse(jsonString) || []
     } catch (e) {
       return
     }
@@ -82,6 +103,10 @@ export default class extends Controller {
         form.appendChild(proceedInput)
       }
     }
+
+    if (duration >= 5 && useTemplate !== null) {
+      form.submit()
+    }
   }
 
   normalizeDate(date) {
@@ -104,5 +129,32 @@ export default class extends Controller {
         modal.hide()
       }, 100)
     }
+  }
+
+  confirmTemplate() {
+    return new Promise(resolve => {
+      const overlay = document.createElement('div')
+      overlay.className = 'template-confirm-overlay'
+      overlay.innerHTML = `
+        <div class="template-confirm-modal">
+          <div class="template-confirm-title">Apply default segmentation template?</div>
+          <div>This will create segments and checkpoints for the new task.</div>
+          <div class="template-confirm-actions">
+            <button class="btn btn-sm btn-secondary" data-template-action="no">No thanks</button>
+            <button class="btn btn-sm btn-primary" data-template-action="yes">Yes</button>
+          </div>
+        </div>
+      `
+      const cleanup = (result) => {
+        overlay.remove()
+        resolve(result)
+      }
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) cleanup(false)
+      })
+      overlay.querySelector('[data-template-action="no"]').addEventListener('click', () => cleanup(false))
+      overlay.querySelector('[data-template-action="yes"]').addEventListener('click', () => cleanup(true))
+      document.body.appendChild(overlay)
+    })
   }
 }

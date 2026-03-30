@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_01_16_090000) do
+ActiveRecord::Schema[7.1].define(version: 2026_03_08_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -157,6 +157,43 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_16_090000) do
     t.index ["user_id"], name: "index_task_assignments_on_user_id"
   end
 
+  create_table "task_checkpoints", force: :cascade do |t|
+    t.integer "day", null: false
+    t.bigint "task_id", null: false
+    t.boolean "notified", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "name"
+    t.index ["task_id", "day"], name: "index_task_checkpoints_on_task_id_and_day", unique: true
+    t.index ["task_id"], name: "index_task_checkpoints_on_task_id"
+  end
+
+  create_table "task_links", force: :cascade do |t|
+    t.bigint "source_task_id", null: false
+    t.bigint "target_task_id", null: false
+    t.integer "anchor_day", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "offset_days", default: 0, null: false
+    t.index ["source_task_id", "target_task_id"], name: "index_task_links_on_source_task_id_and_target_task_id", unique: true
+    t.index ["source_task_id"], name: "index_task_links_on_source_task_id"
+    t.index ["target_task_id"], name: "index_task_links_on_target_task_id"
+  end
+
+  create_table "task_segments", force: :cascade do |t|
+    t.string "name", null: false
+    t.decimal "start_day", precision: 5, scale: 1, null: false
+    t.decimal "end_day", precision: 5, scale: 1, null: false
+    t.bigint "task_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "color"
+    t.decimal "default_percent", precision: 5, scale: 1
+    t.boolean "percent_flagged", default: false, null: false
+    t.index ["task_id", "start_day", "end_day"], name: "index_task_segments_on_task_id_and_start_day_and_end_day"
+    t.index ["task_id"], name: "index_task_segments_on_task_id"
+  end
+
   create_table "tasks", force: :cascade do |t|
     t.string "name", null: false
     t.text "description"
@@ -226,6 +263,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_16_090000) do
   add_foreign_key "projects", "users"
   add_foreign_key "task_assignments", "tasks"
   add_foreign_key "task_assignments", "users"
+  add_foreign_key "task_checkpoints", "tasks"
+  add_foreign_key "task_links", "tasks", column: "source_task_id"
+  add_foreign_key "task_links", "tasks", column: "target_task_id"
+  add_foreign_key "task_segments", "tasks"
   add_foreign_key "tasks", "project_features"
   add_foreign_key "tasks", "projects"
   add_foreign_key "tasks", "tasks", column: "parent_task_id"

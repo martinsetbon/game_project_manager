@@ -1,14 +1,60 @@
-<p style="color: green"><%= notice %></p>
+<div class="new-dashboard">
+  <div class="page-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <h1>Features — <%= @project.name %></h1>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <%= link_to project_path(@project), class: "btn btn-outline-secondary" do %>
+        <i class="bi bi-arrow-left"></i> Project
+      <% end %>
+      <% if @project.user == current_user %>
+        <%= link_to new_project_project_feature_path(@project), class: "btn btn-primary" do %>
+          <i class="bi bi-plus-circle"></i> New feature
+        <% end %>
+        <%= link_to new_with_tasks_project_project_features_path(@project), class: "btn btn-outline-primary" do %>
+          <i class="bi bi-list-task"></i> New feature with tasks
+        <% end %>
+      <% end %>
+      <%= link_to feature_templates_path, class: "btn btn-outline-info" do %>
+        <i class="bi bi-journal-text"></i> My templates
+      <% end %>
+    </div>
+  </div>
 
-<h1>Project features</h1>
-
-<div id="project_features">
-  <% @project_features.each do |project_feature| %>
-    <%= render project_feature %>
-    <p>
-      <%= link_to "Show this project feature", project_feature %>
-    </p>
+  <% if notice.present? %>
+    <p class="alert alert-success"><%= notice %></p>
   <% end %>
-</div>
 
-<%= link_to "New project feature", new_project_feature_path %>
+  <div class="feature-folder-content mt-3">
+    <% if @project_features.any? %>
+      <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Status</th>
+              <th>Tasks</th>
+              <th>Start</th>
+              <th>End</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @project_features.each do |f| %>
+              <tr>
+                <td><strong><%= f.name %></strong></td>
+                <td><span class="badge bg-secondary text-uppercase"><%= f.status&.humanize %></span></td>
+                <td><%= f.tasks.size %></td>
+                <td><%= f.start_date&.strftime('%Y-%m-%d') || '—' %></td>
+                <td><%= f.end_date&.strftime('%Y-%m-%d') || '—' %></td>
+                <td>
+                  <%= link_to 'Open', project_project_feature_path(@project, f), class: "btn btn-sm btn-outline-light" %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-muted">No features yet. Create one from this page or from the project timeline.</p>
+    <% end %>
+  </div>
+</div>

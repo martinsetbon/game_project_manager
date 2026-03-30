@@ -1,0 +1,36 @@
+<div class="new-dashboard">
+  <div class="page-title" style="display: flex; justify-content: space-between; align-items: center;">
+    <h1>My feature templates</h1>
+    <%= link_to root_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-house"></i> Dashboard
+    <% end %>
+  </div>
+
+  <% if notice.present? %>
+    <p class="alert alert-success"><%= notice %></p>
+  <% end %>
+  <% if alert.present? %>
+    <p class="alert alert-danger"><%= alert %></p>
+  <% end %>
+
+  <div class="feature-folder-content mt-3">
+    <% if @templates.any? %>
+      <ul class="list-group list-group-flush">
+        <% @templates.each do |t| %>
+          <li class="list-group-item d-flex justify-content-between align-items-center bg-dark text-light border-secondary">
+            <div>
+              <strong><%= t.name %></strong>
+              <span class="text-muted small ms-2"><%= t.tasks_data&.length || 0 %> tasks</span>
+            </div>
+            <div class="btn-group">
+              <%= link_to 'Edit', edit_feature_template_path(t), class: 'btn btn-sm btn-outline-light' %>
+              <%= button_to 'Delete', feature_template_path(t), method: :delete, class: 'btn btn-sm btn-outline-danger', form: { data: { turbo_confirm: 'Delete this template?' } } %>
+            </div>
+          </li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="text-muted">No templates yet. Create one from a feature’s page (“Save as template”) or when creating a new feature.</p>
+    <% end %>
+  </div>
+</div>

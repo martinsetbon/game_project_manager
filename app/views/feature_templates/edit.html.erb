@@ -1,0 +1,63 @@
+<div class="new-dashboard">
+  <div class="page-title">
+    <h1>Edit template</h1>
+  </div>
+
+  <div class="feature-folder-content" data-controller="feature-bulk-form" data-feature-bulk-form-row-template-id-value="feature-template-edit-row">
+    <% if flash.now[:alert].present? %>
+      <div class="alert alert-danger"><%= flash.now[:alert] %></div>
+    <% end %>
+
+    <%= form_with model: @template, url: feature_template_path(@template), method: :patch, local: true do |f| %>
+      <div class="mb-3">
+        <%= f.label :name, 'Template name', class: 'form-label' %>
+        <%= f.text_field :name, class: 'form-control', required: true %>
+      </div>
+
+      <p class="text-secondary small">Each row is a task with a duration in days (used when you place the template on the timeline).</p>
+
+      <div class="table-responsive">
+        <table class="table table-dark table-sm">
+          <thead>
+            <tr>
+              <th>Task name</th>
+              <th>Duration (days)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody data-feature-bulk-form-target="tbody">
+            <% rows = @tasks_data.presence || [{ 'name' => '', 'duration' => 1 }] %>
+            <% rows.each do |row| %>
+              <% row = row.stringify_keys %>
+              <tr data-feature-bulk-form-target="row">
+                <td>
+                  <input type="text" name="feature_template[tasks_data][][name]" value="<%= row['name'] %>" class="form-control form-control-sm">
+                </td>
+                <td>
+                  <input type="number" name="feature_template[tasks_data][][duration]" value="<%= row['duration'] %>" min="1" class="form-control form-control-sm">
+                </td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-outline-danger" data-action="feature-bulk-form#removeRow">✕</button>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      <button type="button" class="btn btn-outline-light btn-sm mt-1" data-action="feature-bulk-form#addRow">+ Add task</button>
+
+      <div class="mt-4 d-flex gap-2">
+        <%= f.submit 'Save template', class: 'btn btn-primary' %>
+        <%= link_to 'Back', feature_templates_path, class: 'btn btn-secondary' %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<template id="feature-template-edit-row">
+  <tr data-feature-bulk-form-target="row">
+    <td><input type="text" name="feature_template[tasks_data][][name]" class="form-control form-control-sm"></td>
+    <td><input type="number" name="feature_template[tasks_data][][duration]" value="1" min="1" class="form-control form-control-sm"></td>
+    <td><button type="button" class="btn btn-sm btn-outline-danger" data-action="feature-bulk-form#removeRow">✕</button></td>
+  </tr>
+</template>

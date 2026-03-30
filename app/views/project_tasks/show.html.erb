@@ -385,4 +385,224 @@
       </div>
     </div>
   </div>
+
+  <% if @task.start_date && @task.end_date %>
+    <% duration = (@task.end_date - @task.start_date).to_i + 1 %>
+    <% segments = @task.task_segments.order(:start_day) %>
+    <% checkpoints = @task.task_checkpoints.order(:day) %>
+    <% template_names = ['stage 1: rough version', 'stage 1 retake', 'stage 2: final version', 'stage 2 retake', 'buffer'] %>
+    <% template_applied = (segments.size == 5 && segments.map(&:name) == template_names) %>
+    <div class="feature-timeline-section"
+         data-controller="task-detail-timeline"
+         data-task-detail-timeline-project-id-value="<%= @project.id %>"
+         data-task-detail-timeline-task-id-value="<%= @task.id %>"
+         data-task-detail-timeline-duration-value="<%= duration %>"
+         data-task-detail-timeline-can-edit-value="<%= can_edit_task %>"
+         data-task-detail-timeline-template-applied-value="<%= template_applied %>"
+         data-task-detail-timeline-start-date-value="<%= @task.start_date.strftime('%Y-%m-%d') %>"
+         data-task-detail-timeline-end-date-value="<%= @task.end_date.strftime('%Y-%m-%d') %>"
+         data-task-detail-timeline-task-name-value="<%= @task.name %>"
+         data-task-detail-timeline-task-status-value="<%= @task.status %>"
+         data-task-detail-timeline-segments-value="<%= segments.map { |s| { id: s.id, name: s.name, start_day: s.start_day, end_day: s.end_day, color: s.color, default_percent: s.default_percent, percent_flagged: s.percent_flagged } }.to_json %>"
+         data-task-detail-timeline-checkpoints-value="<%= checkpoints.map { |c| { id: c.id, day: c.day, name: c.name } }.to_json %>">
+      <div class="timeline-label-header">
+        <span>Task Timeline</span>
+      </div>
+      <div class="timeline-card-container">
+        <div class="timeline-card" data-task-detail-timeline-target="card">
+          <div class="timeline-days-container">
+            <% (1..duration).each do |day| %>
+              <% segment = segments.find { |s| (day + 1) > s.start_day.to_f && day <= s.end_day.to_f } %>
+              <% is_first_segment_day = segment && day == segment.start_day.to_f.ceil %>
+              <% date_label = (@task.start_date + (day - 1).days) %>
+              <div class="timeline-day-cell-wrapper">
+                <div class="timeline-day-number">
+                  <%= day %>
+                  <span class="day-date"><%= date_label.strftime('%m-%d') %></span>
+                </div>
+                <div class="timeline-day-cell <%= 'segment-day' if segment %> <%= 'segment-day-first' if is_first_segment_day %>"
+                     data-day="<%= day %>"
+                     data-date="<%= date_label.strftime('%Y-%m-%d') %>"
+                     <% if can_edit_task %>
+                     data-action="mousedown->task-detail-timeline#startSelection mouseover->task-detail-timeline#updateSelection mouseup->task-detail-timeline#endSelection"
+                     <% end %>>
+                </div>
+              </div>
+              <% if day < duration %>
+                <% checkpoint = checkpoints.find { |c| c.day == day } %>
+                <div class="timeline-day-gap <%= 'has-checkpoint' if checkpoint %>"
+                     data-day="<%= day %>">
+                  <% if checkpoint %>
+                    <div class="timeline-checkpoint"
+                         data-checkpoint-id="<%= checkpoint.id %>"
+                         data-day="<%= checkpoint.day %>">
+                    <% if checkpoint.name.present? %>
+                      <div class="checkpoint-label"
+                           data-action="click->task-detail-timeline#startCheckpointRename"
+                           data-checkpoint-id="<%= checkpoint.id %>"
+                           data-checkpoint-name="<%= checkpoint.name %>">
+                        <%= checkpoint.name %>
+                      </div>
+                    <% end %>
+                      <% if can_edit_task %>
+                        <button class="checkpoint-delete-btn" data-action="click->task-detail-timeline#deleteCheckpoint" data-checkpoint-id="<%= checkpoint.id %>">
+                          <i class="bi bi-x"></i>
+                        </button>
+                      <% end %>
+                    </div>
+                  <% elsif can_edit_task %>
+                    <div class="checkpoint-placeholder"
+                         data-action="click->task-detail-timeline#addCheckpointAtGap">
+                      <i class="bi bi-plus-circle"></i>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+            <% end %>
+
+            <% segments.each do |segment| %>
+              <% segment_days = segment.end_day.to_f - segment.start_day.to_f + 1.0 %>
+              <% start_percent = ((segment.start_day.to_f - 1.0) / duration.to_f * 100) %>
+              <% start_gap_px = (segment.start_day.to_f - 1.0) * 8 %>
+              <% width_percent = (segment_days / duration.to_f * 100) %>
+              <% width_gap_px = (segment_days - 1.0) * 8 %>
+              <% actual_percent = ((segment_days / duration.to_f) * 100).round(1) %>
+              <% display_percent = segment.default_percent.present? ? segment.default_percent.to_f.round(1) : actual_percent %>
+              <% percent_flagged = segment.percent_flagged.present? ? segment.percent_flagged : false %>
+              <div class="timeline-segment-overlay"
+                   data-segment-id="<%= segment.id %>"
+                   data-start-day="<%= segment.start_day %>"
+                   data-end-day="<%= segment.end_day %>"
+                   data-duration="<%= duration %>"
+                   <%= "title=\"The original value is #{display_percent}% but new task time is not dividable to have #{display_percent}% time segment. Current segment time adjusted to #{actual_percent}%\"" if percent_flagged %>
+                   style="--segment-start-percent: <%= start_percent %>%; --segment-start-gap: <%= start_gap_px %>px; --segment-width-percent: <%= width_percent %>%; --segment-width-gap: <%= width_gap_px %>px; background: <%= segment.color.presence || '#7c3aed' %>;">
+                <div class="segment-content">
+                  <span class="segment-name"><%= segment.name %></span>
+                  <span class="segment-percent <%= 'flagged' if percent_flagged %>"
+                        <%= "title=\"The original value is #{display_percent}% but new task time is not dividable to have #{display_percent}% time segment. Current segment time adjusted to #{actual_percent}%\"" if percent_flagged %>
+                        <%= "data-tooltip=\"The original value is #{display_percent}% but new task time is not dividable to have #{display_percent}% time segment. Current segment time adjusted to #{actual_percent}%\"" if percent_flagged %>>
+                    <%= display_percent %>%
+                  </span>
+                  <% if can_edit_task %>
+                    <button class="segment-delete-btn" data-action="click->task-detail-timeline#deleteSegment" data-segment-id="<%= segment.id %>">
+                      <i class="bi bi-x"></i>
+                    </button>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+        <% if can_edit_task %>
+          <div class="template-controls">
+            <button class="btn btn-sm btn-outline-secondary"
+                    data-task-detail-timeline-target="templateButton"
+                    data-action="click->task-detail-timeline#applyDefaultTemplate"
+                    <%= 'disabled' if template_applied %>>
+              Apply Default Template
+            </button>
+          </div>
+        <% end %>
+        <% if can_edit_task %>
+          <div class="timeline-controls" data-task-detail-timeline-target="controls" style="display: none;">
+            <div class="selected-range-info" data-task-detail-timeline-target="rangeInfo"></div>
+            <input type="text"
+                   class="segment-name-input"
+                   placeholder="Segment name"
+                   data-task-detail-timeline-target="nameInput"
+                   data-action="keydown->task-detail-timeline#handleNameInput">
+            <input type="color"
+                   class="segment-color-input"
+                   value="#7c3aed"
+                   title="Segment color"
+                   data-task-detail-timeline-target="colorInput">
+            <div class="timeline-control-buttons">
+              <button class="btn btn-sm btn-primary" data-action="click->task-detail-timeline#saveSegment">Save Segment</button>
+              <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->task-detail-timeline#cancelSelection">Cancel</button>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      <% if can_edit_task %>
+        <div class="timeline-hint" style="margin-top: 0.5rem; color: rgba(255, 255, 255, 0.6); font-size: 0.85rem;">
+          <i class="bi bi-info-circle"></i> Drag across days to create a segment. Click between days to add a checkpoint.
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="feature-timeline-section task-link-section"
+       data-controller="task-link"
+       data-task-link-project-id-value="<%= @project.id %>"
+       data-task-link-task-id-value="<%= @task.id %>"
+       data-task-link-tasks-value="<%= @project.tasks.where.not(id: @task.id).where.not(start_date: nil, end_date: nil).map { |t| { id: t.id, name: t.name, start_date: t.start_date.strftime('%Y-%m-%d'), end_date: t.end_date.strftime('%Y-%m-%d'), segments: t.task_segments.map { |s| { id: s.id, name: s.name, start_day: s.start_day, end_day: s.end_day, color: s.color } } } }.to_json %>">
+    <div class="timeline-label-header">
+      <span>Task links</span>
+    </div>
+    <div class="timeline-card-container task-link-summary-stack">
+      <% if @task.incoming_task_link.present? %>
+        <div class="linked-task-summary linked-task-incoming mb-2">
+          <div class="small text-muted mb-1">This task follows</div>
+          <div>
+            <strong><%= link_to @task.incoming_task_link.source_task.name, project_task_path(@project, @task.incoming_task_link.source_task), class: 'text-white' %></strong>
+            <span class="text-muted"> — anchor day <%= @task.incoming_task_link.anchor_day %> on that task&rsquo;s timeline</span>
+          </div>
+        </div>
+        <% if can_edit_task %>
+          <button type="button" class="btn btn-sm btn-danger mb-3" data-action="click->task-link#breakLink" data-task-link-link-id-param="<%= @task.incoming_task_link.id %>">Break link to predecessor</button>
+        <% end %>
+      <% end %>
+
+      <% if @outgoing_task_links.any? %>
+        <div class="linked-task-summary linked-task-outgoing mb-2">
+          <div class="small text-muted mb-1"><%= @outgoing_task_links.size == 1 ? 'Task that follows this one' : 'Tasks that follow this one' %></div>
+          <ul class="list-unstyled mb-0">
+            <% @outgoing_task_links.each do |olink| %>
+              <% next unless olink.target_task %>
+              <li class="mb-2 d-flex flex-wrap align-items-center gap-2">
+                <span>
+                  <strong><%= link_to olink.target_task.name, project_task_path(@project, olink.target_task), class: 'text-white' %></strong>
+                  <span class="text-muted"> — from day <%= olink.anchor_day %> on this task&rsquo;s timeline</span>
+                </span>
+                <% if can_edit_task %>
+                  <button type="button" class="btn btn-sm btn-outline-danger" data-action="click->task-link#breakLink" data-task-link-link-id-param="<%= olink.id %>">Break</button>
+                <% end %>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <% if can_edit_task && @task.incoming_task_link.blank? %>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="click->task-link#toggleLinkPanel">
+          Link this task to a predecessor
+        </button>
+        <div class="link-panel" data-task-link-target="panel" style="display: none;">
+          <div class="link-panel-search">
+            <input type="text" class="form-control" placeholder="Search tasks..."
+                   data-task-link-target="searchInput"
+                   data-action="input->task-link#filterTasks">
+          </div>
+          <select class="form-control task-link-select"
+                  data-task-link-target="taskSelect"
+                  data-action="change->task-link#selectTask">
+            <option value="">Select a task...</option>
+          </select>
+          <div class="link-timeline-container">
+            <div class="timeline-card" data-task-link-target="timelineCard">
+              <div class="timeline-days-container" data-task-link-target="timelineDays"></div>
+            </div>
+          </div>
+          <div class="selected-range-info" data-task-link-target="selectedInfo"></div>
+          <div class="timeline-control-buttons">
+            <button class="btn btn-sm btn-primary" data-action="click->task-link#saveLink">Save Link</button>
+            <button class="btn btn-sm btn-secondary cancel-btn" data-action="click->task-link#toggleLinkPanel">Cancel</button>
+          </div>
+        </div>
+      <% elsif can_edit_task %>
+        <p class="small text-muted mb-0">This task already follows another task. Remove a &ldquo;follows&rdquo; link before adding a different one.</p>
+      <% end %>
+    </div>
+  </div>
+
 </div>
