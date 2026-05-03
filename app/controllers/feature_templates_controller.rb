@@ -4,6 +4,9 @@ class FeatureTemplatesController < ApplicationController
 
   def index
     @templates = current_user.feature_templates.order(created_at: :desc)
+    @project_for_new_feature = if params[:project_id].present?
+      current_user.projects.find_by(id: params[:project_id])
+    end
     respond_to do |format|
       format.html
       format.json do

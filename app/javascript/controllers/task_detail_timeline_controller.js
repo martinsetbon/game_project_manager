@@ -365,11 +365,14 @@ export default class extends Controller {
   async deleteSegment(event) {
     event.stopPropagation()
 
-    if (!confirm('Are you sure you want to delete this segment?')) {
+    const segmentId = event.currentTarget.dataset.segmentId
+    const segment = this.segmentsData.find(s => s.id === parseInt(segmentId, 10))
+    const segmentName = segment?.name || 'this feature'
+    const confirmationMessage = `if you delete a feature, all its tasks will also be deleted, are you sure you want to delete "${segmentName}" ? This action cannot be undone.`
+
+    if (!confirm(confirmationMessage)) {
       return
     }
-
-    const segmentId = event.currentTarget.dataset.segmentId
 
     try {
       const response = await fetch(

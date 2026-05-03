@@ -13,16 +13,53 @@
     <p class="alert alert-danger"><%= alert %></p>
   <% end %>
 
+  <p class="text-secondary small mb-3">
+    From a project, open <strong>New feature</strong> and use <strong>Create with template</strong> (dropdown + start date) on that page, or use the links below when a project is selected.
+  </p>
+
+  <% if current_user.projects.none? %>
+    <p class="text-muted">Create a project first, then you can start a feature from a template.</p>
+  <% else %>
+    <%= form_with url: feature_templates_path, method: :get, local: true, class: "mb-4 p-3 border border-secondary rounded bg-dark" do %>
+      <label class="form-label mb-2">Project for “new feature” links</label>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <%= select_tag :project_id,
+            options_for_select(
+              [["Select a project…", ""]] + current_user.projects.order(:name).map { |p| [p.name, p.id] },
+              params[:project_id]
+            ),
+            class: "form-select",
+            style: "max-width: 22rem;" %>
+        <%= submit_tag "Update", class: "btn btn-primary" %>
+      </div>
+    <% end %>
+  <% end %>
+
+  <% if @project_for_new_feature %>
+    <p class="small text-success mb-2">
+      <i class="bi bi-check-circle"></i>
+      Showing actions for <strong><%= @project_for_new_feature.name %></strong>.
+      <%= link_to 'New feature with this project', new_project_project_feature_path(@project_for_new_feature), class: 'link-light fw-semibold' %>
+    </p>
+  <% elsif current_user.projects.any? %>
+    <p class="small text-warning mb-2">Select a project above to enable one-click “Use for new feature”.</p>
+  <% end %>
+
   <div class="feature-folder-content mt-3">
     <% if @templates.any? %>
       <ul class="list-group list-group-flush">
         <% @templates.each do |t| %>
-          <li class="list-group-item d-flex justify-content-between align-items-center bg-dark text-light border-secondary">
+          <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2 bg-dark text-light border-secondary">
             <div>
               <strong><%= t.name %></strong>
               <span class="text-muted small ms-2"><%= t.tasks_data&.length || 0 %> tasks</span>
             </div>
-            <div class="btn-group">
+            <div class="btn-group flex-wrap">
+              <% if @project_for_new_feature %>
+                <%= link_to new_project_project_feature_path(@project_for_new_feature, template_id: t.id), class: 'btn btn-sm btn-primary' do %>
+                  <i class="bi bi-plus-circle"></i> Use for new feature
+                <% end %>
+              <% end %>
               <%= link_to 'Edit', edit_feature_template_path(t), class: 'btn btn-sm btn-outline-light' %>
               <%= button_to 'Delete', feature_template_path(t), method: :delete, class: 'btn btn-sm btn-outline-danger', form: { data: { turbo_confirm: 'Delete this template?' } } %>
             </div>
@@ -30,7 +67,7 @@
         <% end %>
       </ul>
     <% else %>
-      <p class="text-muted">No templates yet. Create one from a feature’s page (“Save as template”) or when creating a new feature.</p>
+      <p class="text-muted">No templates yet. Run <code>bin/rails feature_templates:seed_defaults</code> for the starter set, or create one from a feature’s page (“Save as template”).</p>
     <% end %>
   </div>
 </div>

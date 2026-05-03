@@ -1,11 +1,132 @@
 <div class="new-dashboard">
-  <!-- Page Title -->
-  <div class="page-title">
-    <h1>New Feature</h1>
+  <div class="page-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <h1 style="margin: 0;">New feature</h1>
+    <%= link_to project_project_features_path(@project), class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left"></i> All features
+    <% end %>
   </div>
 
-  <!-- Feature Form Content -->
-  <div class="feature-folder-content">
-    <%= render 'form', project_feature: @project_feature, project: @project, users: @users %>
+  <div class="feature-folder-content"
+       data-controller="feature-bulk-form"
+       data-feature-bulk-form-confirm-overlaps-value="true">
+    <% if flash.now[:overlap_details].present? %>
+      <div class="alert alert-warning">
+        <strong>Overlapping work detected.</strong> Use "Create anyway" below or adjust dates and assignees.
+        <pre class="small text-white mt-2 mb-0" style="white-space: pre-wrap;"><%= flash.now[:overlap_details] %></pre>
+      </div>
+    <% end %>
+    <% if flash.now[:alert].present? %>
+      <div class="alert alert-danger"><%= flash.now[:alert] %></div>
+    <% end %>
+
+    <%= form_with url: create_with_tasks_project_project_features_path(@project), method: :post, local: true, data: { action: 'submit->feature-bulk-form#submit' } do %>
+      <% if @overlap_retry %>
+        <%= hidden_field_tag :proceed_overlaps, 'true' %>
+        <% if @bulk_create_mode == 'template' %>
+          <%= hidden_field_tag :bulk_create_mode, 'template' %>
+          <%= hidden_field_tag :template_id, @template_id_for_form %>
+          <%= hidden_field_tag :template_anchor_date, @template_anchor_for_form %>
+        <% end %>
+      <% end %>
+
+      <div class="mb-3">
+        <%= label_tag 'project_feature_name', 'Feature name', class: 'form-label' %>
+        <%= text_field_tag 'project_feature[name]', @project_feature&.name, class: 'form-control', required: true, placeholder: 'Name for this feature' %>
+      </div>
+
+      <p class="text-secondary small mb-3">Add tasks in the table, or skip the table and use <strong>Create with template</strong> below. The first task needs a start date; unassigned tasks without dates are placed one after another from there. Assigned tasks need their own start date.</p>
+
+      <div class="table-responsive">
+        <table class="table table-dark table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Task name</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Responsible</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody data-feature-bulk-form-target="tbody">
+            <% rows = @submitted_tasks.presence || Array.new(5) { {} } %>
+            <% rows.each_with_index do |row, i| %>
+              <tr data-feature-bulk-form-target="row">
+                <td><%= text_field_tag "tasks[][name]", row['name'] || row[:name], class: 'form-control form-control-sm', placeholder: 'Task name' %></td>
+                <td><%= date_field_tag "tasks[][start_date]", row['start_date'] || row[:start_date], class: 'form-control form-control-sm' %></td>
+                <td><%= date_field_tag "tasks[][end_date]", row['end_date'] || row[:end_date], class: 'form-control form-control-sm' %></td>
+                <td>
+                  <%= select_tag "tasks[][responsible_user_id]",
+                      options_for_select(
+                        [['-- Unassigned --', '']] + @contributors.map { |u| [u.name.to_s, u.id] },
+                        (row['responsible_user_id'] || row[:responsible_user_id]).presence
+                      ),
+                      class: 'form-select form-select-sm' %>
+                </td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-outline-danger" data-action="feature-bulk-form#removeRow">X</button>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 mt-2">
+        <button type="button" class="btn btn-outline-light btn-sm" data-action="feature-bulk-form#addRow">+ Add task row</button>
+      </div>
+
+      <% template_opts = [['-- Template --', '']] + (@task_templates_json || []).map { |t| [t[:name] || t['name'], t[:id] || t['id']] } %>
+      <% selected_template = @template_id_for_form.presence || params[:template_id].presence %>
+      <div class="mt-4 pt-3 border-top border-secondary">
+        <p class="small text-secondary mb-2">From a saved template (uses the feature name above). First task starts on the date you pick; following tasks use template durations.</p>
+        <div class="d-flex flex-wrap gap-2 align-items-end">
+          <%= label_tag :template_id, 'Template', class: 'visually-hidden' %>
+          <%= select_tag :template_id, options_for_select(template_opts, selected_template), class: 'form-select', style: 'min-width: 14rem; max-width: 22rem;' %>
+          <%= label_tag :template_anchor_date, 'First task starts', class: 'small text-secondary mb-0' %>
+          <%= date_field_tag :template_anchor_date, @template_anchor_for_form, class: 'form-control', style: 'width: auto;' %>
+          <% if @overlap_retry && @bulk_create_mode == 'template' %>
+            <%= button_tag 'Create anyway (allow overlaps)',
+                           type: 'submit',
+                           name: 'bulk_create_mode',
+                           value: 'template',
+                           class: 'btn btn-warning',
+                           data: { bulk_create_mode: 'template' } %>
+          <% else %>
+            <%= button_tag 'Create with template',
+                           type: 'submit',
+                           name: 'bulk_create_mode',
+                           value: 'template',
+                           class: 'btn btn-outline-primary',
+                           data: { bulk_create_mode: 'template' } %>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 mt-4 align-items-center">
+        <% if @overlap_retry && @bulk_create_mode != 'template' %>
+          <%= submit_tag 'Create anyway (allow overlaps)', class: 'btn btn-warning' %>
+        <% else %>
+          <%= submit_tag 'Create feature', name: 'commit', value: 'Create feature', class: 'btn btn-primary' %>
+        <% end %>
+        <%= link_to 'Cancel', project_project_features_path(@project), class: 'btn btn-secondary' %>
+      </div>
+    <% end %>
   </div>
 </div>
+
+<template id="feature-bulk-form-row-template">
+  <tr data-feature-bulk-form-target="row">
+    <td><input type="text" name="tasks[][name]" class="form-control form-control-sm" placeholder="Task name"></td>
+    <td><input type="date" name="tasks[][start_date]" class="form-control form-control-sm"></td>
+    <td><input type="date" name="tasks[][end_date]" class="form-control form-control-sm"></td>
+    <td>
+      <select name="tasks[][responsible_user_id]" class="form-select form-select-sm">
+        <option value="">-- Unassigned --</option>
+        <% @contributors.each do |u| %>
+          <option value="<%= u.id %>"><%= u.name %></option>
+        <% end %>
+      </select>
+    </td>
+    <td><button type="button" class="btn btn-sm btn-outline-danger" data-action="feature-bulk-form#removeRow">X</button></td>
+  </tr>
+</template>

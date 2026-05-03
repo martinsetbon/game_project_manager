@@ -23,7 +23,12 @@
     <!-- Folder Content -->
     <div class="project-folder folder-content" style="<%= 'background-image: url(' + url_for(@project.background_image) + ');' if @project.background_image.attached? %>">
       <!-- Tasks Tab -->
-      <div class="folder-tab-panel" data-project-tabs-target="tabPanel" data-tab-panel="tasks" data-controller="view-switcher">
+      <div class="folder-tab-panel"
+           data-project-tabs-target="tabPanel"
+           data-tab-panel="tasks"
+           data-controller="view-switcher task-feature-selection"
+           data-task-feature-selection-new-url-value="<%= new_from_tasks_project_project_features_path(@project) %>"
+           data-action="tasks-table:refreshed->task-feature-selection#update">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;">
           <h2 style="margin: 0;">Task list</h2>
           <% if @project.user == current_user %>
@@ -32,10 +37,22 @@
                 <i class="bi bi-collection"></i>
                 Features
               <% end %>
-              <%= link_to new_with_tasks_project_project_features_path(@project), class: "btn btn-outline-primary", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
-                <i class="bi bi-list-task"></i>
-                New feature + tasks
+              <%= link_to feature_templates_path(project_id: @project.id), class: "btn btn-outline-light", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
+                <i class="bi bi-journal-bookmark"></i>
+                Templates
               <% end %>
+              <%= link_to new_project_project_feature_path(@project), class: "btn btn-outline-primary", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
+                <i class="bi bi-plus-circle"></i>
+                New feature
+              <% end %>
+              <a href="#"
+                 class="btn btn-outline-warning"
+                 style="display: flex; align-items: center; gap: 0.5rem;"
+                 data-task-feature-selection-target="createBtn"
+                 data-action="click->task-feature-selection#toggleMode">
+                <i class="bi bi-folder-plus"></i>
+                Group tasks into a feature
+              </a>
               <%= link_to new_project_task_path(@project), class: "btn btn-primary", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
                 <i class="bi bi-plus-circle"></i>
                 New Task
@@ -43,6 +60,14 @@
             </div>
           <% end %>
         </div>
+
+        <% if @project.user == current_user %>
+          <div class="task-feature-selection-help alert alert-info py-2 mb-3"
+               style="display: none;"
+               data-task-feature-selection-target="helpText">
+            Please select the tasks you want to group.
+          </div>
+        <% end %>
         
         <!-- Filters and View Switcher -->
         <div class="features-controls">
@@ -90,7 +115,13 @@
                   <div class="feature-card-wrapper">
                     <%= link_to project_task_path(@project, task),
                       class: "feature-card status-#{task.status} priority-#{task.priority || 'none'}",
-                      data: { my_feature: is_my_task, feature_id: task.project_feature_id || 'none' },
+                      data: {
+                        my_feature: is_my_task,
+                        feature_id: task.project_feature_id || 'none',
+                        task_id: task.id,
+                        task_feature_selection_target: 'card',
+                        action: 'click->task-feature-selection#toggleCard'
+                      },
                       style: "--feature-text-color: #{feature_text_color(task.project_feature_id)};" do %>
                       <div class="feature-name"><%= task.name %></div>
                       <div class="feature-status">
@@ -131,12 +162,7 @@
           </div>
           
           <!-- Tasks Table View -->
-          <div class="features-table-container" style="display: none;" data-controller="tasks-table task-feature-selection" data-task-feature-selection-new-url-value="<%= new_from_tasks_project_project_features_path(@project) %>" data-action="change->task-feature-selection#update">
-            <% if @project.user == current_user %>
-              <div class="mb-2" style="display: flex; justify-content: flex-end;">
-                <a href="#" data-task-feature-selection-target="createBtn" class="btn btn-sm btn-outline-warning" style="display: none;">Create feature from selected tasks</a>
-              </div>
-            <% end %>
+          <div class="features-table-container" style="display: none;" data-controller="tasks-table">
             <table class="features-table">
               <thead>
                 <tr>
@@ -257,10 +283,18 @@
                     <tr data-my-feature="<%= is_my_task %>" 
                         data-priority="<%= task.priority || 'none' %>" 
                         data-feature-id="<%= task.project_feature_id || 'none' %>"
+                        data-task-feature-selection-target="row"
+                        data-action="click->task-feature-selection#toggleRow"
                         style="--feature-text-color: <%= feature_text_color(task.project_feature_id) %>;">
                       <% if @project.user == current_user %>
                         <td class="column-checkbox" onclick="event.stopPropagation();">
-                          <input type="checkbox" class="form-check-input" data-task-id="<%= task.id %>" data-action="change->task-feature-selection#update" title="Select for feature grouping">
+                          <input type="checkbox"
+                                 class="form-check-input"
+                                 data-task-id="<%= task.id %>"
+                                 data-task-feature-selection-target="checkbox"
+                                 data-action="change->task-feature-selection#toggleCheckbox"
+                                 title="Select for feature grouping"
+                                 disabled>
                         </td>
                       <% end %>
                       <td class="column-name status-<%= task.status %> priority-<%= task.priority || 'none' %>">
@@ -897,13 +931,13 @@
                         <i class="bi bi-table"></i>
                         All features
                       <% end %>
-                      <%= link_to new_with_tasks_project_project_features_path(@project), class: "btn btn-outline-primary", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
-                        <i class="bi bi-list-task"></i>
-                        New + tasks
+                      <%= link_to feature_templates_path(project_id: @project.id), class: "btn btn-outline-light", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
+                        <i class="bi bi-journal-bookmark"></i>
+                        Templates
                       <% end %>
                       <%= link_to new_project_project_feature_path(@project), class: "btn btn-primary", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
                         <i class="bi bi-plus-circle"></i>
-                        New Feature
+                        New feature
                       <% end %>
                     </div>
                   <% end %>

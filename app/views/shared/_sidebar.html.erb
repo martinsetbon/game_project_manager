@@ -51,6 +51,13 @@
           <span>Backlog</span>
         <% end %>
       </li>
+
+      <li class="nav-item">
+        <%= link_to feature_templates_path, class: "nav-link #{'active' if controller.controller_name == 'feature_templates'}" do %>
+          <i class="bi bi-journal-bookmark"></i>
+          <span>Templates</span>
+        <% end %>
+      </li>
       
       <li class="nav-item">
         <%= link_to "#", class: "nav-link" do %>

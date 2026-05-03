@@ -225,11 +225,13 @@ export default class extends Controller {
     console.log('Contributors found:', contributors.length, contributors)
     console.log('All project contributors:', this.allProjectContributors)
     
-    // Render contributors column
-    this.renderContributors(contributors)
-    
-    // Render timeline
-    this.renderTimelineGrid(contributors, filteredTasks)
+    const layoutByContributor = new Map()
+    contributors.forEach(c => {
+      layoutByContributor.set(c.id, this.getContributorTimelineLayout(c, filteredTasks))
+    })
+
+    this.renderContributors(contributors, layoutByContributor)
+    this.renderTimelineGrid(contributors, filteredTasks, layoutByContributor)
     
     // Sync scroll positions after rendering
     setTimeout(() => {
@@ -316,7 +318,37 @@ export default class extends Controller {
     })
   }
 
-  renderContributors(contributors) {
+  contributorRowMinHeightPx(maxLayer) {
+    return Math.max(50, 40 + (maxLayer + 1) * 14)
+  }
+
+  tasksForTimelineContributor(contributor, tasks) {
+    return (tasks || []).filter(t => {
+      if (!t.start_date || !t.end_date) return false
+      const responsibleIds = t.responsible_users?.map(u => u.id) || []
+      const accountableIds = t.accountable_users?.map(u => u.id) || []
+      const hasAssignee = responsibleIds.length > 0 || accountableIds.length > 0
+      if (!hasAssignee) {
+        return contributor.id === 0
+      }
+      const isResponsible = responsibleIds.includes(contributor.id)
+      const isAccountable = accountableIds.includes(contributor.id)
+      return isResponsible || isAccountable
+    })
+  }
+
+  getContributorTimelineLayout(contributor, tasks) {
+    const contributorTasks = this.tasksForTimelineContributor(contributor, tasks)
+    const overlapMeta = this.assignOverlapLayers(contributorTasks)
+    let maxLayer = 0
+    contributorTasks.forEach(task => {
+      const m = overlapMeta.get(task.id)
+      if (m) maxLayer = Math.max(maxLayer, m.layer)
+    })
+    return { contributorTasks, overlapMeta, maxLayer }
+  }
+
+  renderContributors(contributors, layoutByContributor = null) {
     const list = this.contributorsListTarget
     if (!list) {
       console.error('Contributors list target not found!')
@@ -341,11 +373,14 @@ export default class extends Controller {
       div.className = 'timeline-contributor-item'
       div.textContent = contributor.name || 'Unknown'
       div.dataset.contributorId = contributor.id
+      const layout = layoutByContributor?.get(contributor.id)
+      const maxLayer = layout?.maxLayer ?? 0
+      div.style.minHeight = `${this.contributorRowMinHeightPx(maxLayer)}px`
       list.appendChild(div)
     })
   }
 
-  renderTimelineGrid(contributors, tasks) {
+  renderTimelineGrid(contributors, tasks, layoutByContributor = null) {
     // Always render the FULL project timeline (from start to end)
     const visibleStartDate = new Date(this.projectStartDate)
     const visibleEndDate = new Date(this.projectEndDate)
@@ -371,8 +406,7 @@ export default class extends Controller {
     // Render header for full timeline
     this.renderTimelineHeader(visibleStartDate, visibleEndDate, pixelsPerDay)
     
-    // Render rows for full timeline
-    this.renderTimelineRows(contributors, tasks, visibleStartDate, visibleEndDate, pixelsPerDay)
+    this.renderTimelineRows(contributors, tasks, visibleStartDate, visibleEndDate, pixelsPerDay, layoutByContributor)
   }
 
   renderTimelineHeader(startDate, endDate, pixelsPerDay) {
@@ -543,7 +577,7 @@ export default class extends Controller {
     return Math.ceil((date.getDate() + firstWeekday) / 7)
   }
 
-  renderTimelineRows(contributors, tasks, startDate, endDate, pixelsPerDay) {
+  renderTimelineRows(contributors, tasks, startDate, endDate, pixelsPerDay, layoutByContributor = null) {
     const rowsArea = this.rowsAreaTarget
     rowsArea.innerHTML = ''
     this.taskElements = new Map()
@@ -570,27 +604,10 @@ export default class extends Controller {
       row.style.width = `${totalWidth}px`
       row.style.minWidth = `${totalWidth}px`
       
-      // Find tasks for this contributor
-      const contributorTasks = tasks.filter(t => {
-        if (!t.start_date || !t.end_date) return false
-        const responsibleIds = t.responsible_users?.map(u => u.id) || []
-        const accountableIds = t.accountable_users?.map(u => u.id) || []
-        const hasAssignee = responsibleIds.length > 0 || accountableIds.length > 0
-        if (!hasAssignee) {
-          return contributor.id === 0
-        }
-        const isResponsible = responsibleIds.includes(contributor.id)
-        const isAccountable = accountableIds.includes(contributor.id)
-        return isResponsible || isAccountable
-      })
-      
-      const overlapMeta = this.assignOverlapLayers(contributorTasks)
-      let maxLayer = 0
-      contributorTasks.forEach(task => {
-        const m = overlapMeta.get(task.id)
-        if (m) maxLayer = Math.max(maxLayer, m.layer)
-      })
-      row.style.minHeight = `${Math.max(50, 40 + (maxLayer + 1) * 14)}px`
+      const { contributorTasks, overlapMeta, maxLayer } =
+        layoutByContributor?.get(contributor.id) || this.getContributorTimelineLayout(contributor, tasks)
+
+      row.style.minHeight = `${this.contributorRowMinHeightPx(maxLayer)}px`
 
       // Render task bars
       contributorTasks.forEach(task => {
@@ -1060,9 +1077,26 @@ export default class extends Controller {
       })
     }
 
+    const namedTasks = tasks.filter(t => t.name)
+    if (namedTasks.length === 0) {
+      window.alert('Please add at least one task for this feature.')
+      return
+    }
+
+    if (!namedTasks[0].start_date) {
+      window.alert('The first task needs a start date because it becomes the feature start date.')
+      return
+    }
+
+    const assignedWithoutStart = namedTasks.find(t => t.responsible_user_id && !t.start_date)
+    if (assignedWithoutStart) {
+      window.alert(`Task "${assignedWithoutStart.name}" needs a start date because it is assigned to a responsible user.`)
+      return
+    }
+
     const payload = {
       feature_name: name,
-      tasks: tasks.filter(t => t.name)
+      tasks: namedTasks
     }
 
     const url = `/projects/${this.projectId}/project_features/create_from_timeline`
@@ -1089,7 +1123,7 @@ export default class extends Controller {
 
     if (res.status === 409 && data.status === 'overlap_warning') {
       const msg = (data.overlaps || []).join('\n')
-      if (window.confirm(`${msg}\n\nProceed anyway and allow overlaps?`)) {
+      if (window.confirm(`Creating this feature will make some tasks overlap:\n\n${msg}\n\nDo you want to proceed anyway and allow overlaps?`)) {
         res = await submit({ ...payload, proceed_overlaps: 'true' })
         try {
           data = await res.json()

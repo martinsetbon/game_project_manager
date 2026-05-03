@@ -1,10 +1,10 @@
 <%= form_with model: [@project, @project_feature], data: {
-  controller: "feature-assignment feature-template-selector",
-  action: "turbo:submit-end->feature-assignment#handleSubmission",
-  feature_template_selector_users_value: (@all_users || []).map { |u| { id: u.id, name: u.name, job: u.job } }.to_json
+  controller: "feature-assignment",
+  action: "turbo:submit-end->feature-assignment#handleSubmission"
 }, local: true do |f| %>
   
   <% if @project_feature.can_edit_details?(current_user) %>
+    <% unless local_assigns[:omit_name_field] %>
     <!-- Feature Name -->
     <div class="project-info-field">
       <div class="field-display">
@@ -17,6 +17,7 @@
         </div>
       </div>
     </div>
+    <% end %>
 
     <!-- Start Date -->
     <div class="project-info-field">
@@ -31,43 +32,7 @@
       </div>
     </div>
 
-    <% if @project_feature.new_record? %>
-      <!-- Template Selection (only for new features) -->
-      <div class="project-info-field" data-feature-template-selector-target="templateField">
-        <div class="field-display">
-          <div class="field-label">
-            <span>Task Template</span>
-          </div>
-          <div class="field-separator"></div>
-          <div class="field-value">
-            <%= f.hidden_field :template_id, data: { feature_template_selector_target: "templateId" } %>
-            <div data-feature-template-selector-target="templateSelector">
-              <select class="form-control mb-2" data-feature-template-selector-target="templateSelect" data-action="change->feature-template-selector#onTemplateSelect">
-                <option value="">Select a template (optional)</option>
-              </select>
-              <button type="button" class="btn btn-sm btn-secondary" data-action="click->feature-template-selector#showCreateTemplate">
-                <i class="bi bi-plus-circle"></i> Create New Template
-              </button>
-            </div>
-            <div data-feature-template-selector-target="createTemplateSection" class="d-none mt-3 p-3 border rounded">
-              <h6>Create New Template</h6>
-              <div class="mb-2">
-                <label>Template Name</label>
-                <input type="text" class="form-control" data-feature-template-selector-target="newTemplateName" placeholder="Enter template name">
-              </div>
-              <div data-feature-template-selector-target="taskEditor">
-                <!-- Task editor will be rendered here -->
-              </div>
-              <div class="mt-2">
-                <button type="button" class="btn btn-sm btn-primary" data-action="click->feature-template-selector#addTask">Add Task</button>
-                <button type="button" class="btn btn-sm btn-success" data-action="click->feature-template-selector#saveNewTemplate">Save Template & Use</button>
-                <button type="button" class="btn btn-sm btn-secondary" data-action="click->feature-template-selector#cancelCreateTemplate">Cancel</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    <% else %>
+    <% unless @project_feature.new_record? %>
       <!-- End Date (only for existing features) -->
       <div class="project-info-field">
         <div class="field-display">
@@ -255,14 +220,17 @@
   <% end %>
 
   <!-- Form Actions -->
-  <div style="display: flex; gap: 1rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-    <%= f.submit @project_feature.new_record? ? "Create Feature" : "Update Feature", 
-        class: "btn btn-primary", 
-        style: "display: flex; align-items: center; gap: 0.5rem;",
-        data: { feature_assignment_target: "submitButton" } %>
-    <%= link_to project_path(@project), class: "btn btn-secondary", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
-      <i class="bi bi-arrow-left"></i>
-      Cancel
-    <% end %>
-  </div>
+  <% if @project_feature.can_edit_details?(current_user) || !local_assigns[:embedded_on_show] %>
+    <div style="display: flex; gap: 1rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+      <%= f.submit(local_assigns[:embedded_on_show] ? "Update feature" : "Update Feature",
+          class: "btn btn-primary",
+          style: "display: flex; align-items: center; gap: 0.5rem;") %>
+      <% unless local_assigns[:embedded_on_show] %>
+        <%= link_to project_path(@project), class: "btn btn-secondary", style: "display: flex; align-items: center; gap: 0.5rem;" do %>
+          <i class="bi bi-arrow-left"></i>
+          Cancel
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
 <% end %>

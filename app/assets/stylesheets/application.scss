@@ -2810,6 +2810,34 @@ body {
   }
 }
 
+.task-feature-selection-help {
+  color: $white;
+  background: rgba(13, 202, 240, 0.18);
+  border: 1px solid rgba(13, 202, 240, 0.45);
+}
+
+.task-feature-selection-mode {
+  .task-feature-selection-selectable {
+    cursor: pointer;
+    outline: 2px dashed rgba(255, 193, 7, 0.75);
+    outline-offset: 3px;
+  }
+
+  .task-feature-selection-disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .task-feature-selection-selected {
+    box-shadow: 0 0 0 4px rgba(255, 193, 7, 0.45);
+    transform: translateY(-2px);
+  }
+
+  tr.task-feature-selection-selectable:hover {
+    outline-offset: -2px;
+  }
+}
+
 // Feature card indicator styles
 .my-feature-indicator {
   position: absolute;

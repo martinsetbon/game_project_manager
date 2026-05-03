@@ -19,6 +19,11 @@ class ProjectFeatureBulkCreator
     @planned_tasks ||= build_planned_tasks
   end
 
+  def validation_errors
+    planned_tasks
+    @validation_errors || []
+  end
+
   def overlap_messages
     @overlap_messages ||= collect_overlap_messages(planned_tasks)
   end
@@ -26,6 +31,7 @@ class ProjectFeatureBulkCreator
   def create!(proceed_overlaps: false)
     return { status: :error, errors: ['Feature name is required'] } if @feature_name.blank?
     return { status: :error, errors: ['No tasks to create'] } if planned_tasks.empty?
+    return { status: :error, errors: validation_errors } if validation_errors.any?
 
     unless proceed_overlaps
       msgs = overlap_messages
@@ -63,6 +69,39 @@ class ProjectFeatureBulkCreator
     { status: :error, errors: e.record.errors.full_messages.presence || [e.message] }
   end
 
+  # Adds tasks to an existing feature (same row shape as #create!). Expands feature start/end to include new dated tasks.
+  def append_to_feature!(feature, proceed_overlaps: false)
+    return { status: :error, errors: ['No tasks to create'] } if planned_tasks.empty?
+    return { status: :error, errors: validation_errors } if validation_errors.any?
+
+    unless proceed_overlaps
+      msgs = overlap_messages
+      return { status: :overlap, overlaps: msgs } if msgs.any?
+    end
+
+    created_tasks = []
+    ActiveRecord::Base.transaction do
+      start_order = feature.tasks.top_level.maximum(:order)
+      start_order = start_order.nil? ? 0 : start_order + 1
+
+      planned_tasks.each_with_index do |row, i|
+        task = create_one_task(feature, row, start_order + i)
+        created_tasks << task
+      end
+
+      dated = feature.tasks.reload.select { |t| t.start_date.present? && t.end_date.present? }
+      if dated.any?
+        fs = dated.map(&:start_date).min
+        fe = dated.map(&:end_date).max
+        feature.update_columns(start_date: fs, end_date: fe, updated_at: Time.current)
+      end
+    end
+
+    { status: :success, feature: feature.reload, tasks: created_tasks }
+  rescue ActiveRecord::RecordInvalid => e
+    { status: :error, errors: e.record.errors.full_messages.presence || [e.message] }
+  end
+
   def self.merge_tasks_from_template_rows(template, anchor_date)
     return [] unless template && anchor_date
 
@@ -83,11 +122,16 @@ class ProjectFeatureBulkCreator
   private
 
   def build_planned_tasks
-    if @from_template_only && @template.present? && @anchor_date.present?
-      return self.class.merge_tasks_from_template_rows(@template, @anchor_date).map { |r| normalize_row(r) }
-    end
+    rows = if @from_template_only && @template.present? && @anchor_date.present?
+             self.class.merge_tasks_from_template_rows(@template, @anchor_date).map { |r| normalize_row(r) }
+           else
+             @task_rows.map { |r| normalize_row(r) }.select { |r| r[:name].present? }
+           end
 
-    @task_rows.map { |r| normalize_row(r) }.select { |r| r[:name].present? }
+    @validation_errors = collect_validation_errors(rows)
+    return rows if @validation_errors.any?
+
+    schedule_rows(rows)
   end
 
   def normalize_row(r)
@@ -108,34 +152,63 @@ class ProjectFeatureBulkCreator
     nil
   end
 
+  def collect_validation_errors(rows)
+    errors = []
+    return errors if rows.empty?
+
+    errors << 'The first task must have a start date because it becomes the feature start date.' if rows.first[:start_date].blank?
+
+    rows.each do |row|
+      errors << %(Task "#{row[:name]}" must have a start date when it is assigned to a responsible user.) if row[:responsible_user_id].present? && row[:start_date].blank?
+      errors << %(Task "#{row[:name]}" cannot end before it starts.) if row[:start_date].present? && row[:end_date].present? && row[:end_date] < row[:start_date]
+    end
+
+    errors.uniq
+  end
+
+  def schedule_rows(rows)
+    next_start = rows.first&.fetch(:start_date, nil)
+
+    rows.map do |row|
+      start_date = row[:start_date] || next_start
+      end_date = planned_end_date(row, start_date)
+      next_start = end_date + 1.day
+
+      row.merge(start_date: start_date, end_date: end_date)
+    end
+  end
+
+  def planned_end_date(row, start_date)
+    return start_date unless start_date
+
+    if row[:start_date].present? && row[:end_date].present?
+      row[:end_date]
+    else
+      start_date
+    end
+  end
+
   def collect_overlap_messages(planned)
     msgs = []
 
     by_user = Hash.new { |h, k| h[k] = [] }
     planned.each_with_index do |t, i|
-      next if t[:responsible_user_id].blank?
       next if t[:start_date].nil? || t[:end_date].nil?
 
-      by_user[t[:responsible_user_id]] << t.merge(index: i)
+      by_user[t[:responsible_user_id] || :unassigned] << t.merge(index: i)
     end
 
-    by_user.each do |uid, list|
+    by_user.each do |lane, list|
       list.combination(2) do |a, b|
-        msgs << overlap_line(a, b, uid) if range_overlap?(a, b)
+        msgs << overlap_line(a, b, lane) if range_overlap?(a, b)
       end
     end
 
     planned.each do |t|
-      next if t[:responsible_user_id].blank?
       next if t[:start_date].nil? || t[:end_date].nil?
 
-      Task.joins(:responsible_assignments)
-          .where(project_id: @project.id)
-          .where(task_assignments: { user_id: t[:responsible_user_id], role: 'responsible' })
-          .where.not(start_date: nil, end_date: nil)
-          .where('start_date <= ? AND end_date >= ?', t[:end_date], t[:start_date])
-          .find_each do |ex|
-        msgs << %(New task "#{t[:name]}" overlaps existing "#{ex.name}" (#{user_label(t[:responsible_user_id])}).)
+      overlapping_existing_tasks(t).find_each do |ex|
+        msgs << %(New task "#{t[:name]}" overlaps existing "#{ex.name}" (#{lane_label(t[:responsible_user_id] || :unassigned)}).)
       end
     end
 
@@ -147,11 +220,27 @@ class ProjectFeatureBulkCreator
   end
 
   def overlap_line(a, b, uid)
-    %(Tasks "#{a[:name]}" and "#{b[:name]}" overlap for #{user_label(uid)}.)
+    %(Tasks "#{a[:name]}" and "#{b[:name]}" overlap on #{lane_label(uid)}.)
   end
 
-  def user_label(uid)
-    User.find_by(id: uid)&.name || "user ##{uid}"
+  def lane_label(uid)
+    return 'the unassigned row' if uid == :unassigned
+
+    "the row for #{User.find_by(id: uid)&.name || "user ##{uid}"}"
+  end
+
+  def overlapping_existing_tasks(row)
+    scope = Task.where(project_id: @project.id)
+                .where.not(start_date: nil, end_date: nil)
+                .where('start_date <= ? AND end_date >= ?', row[:end_date], row[:start_date])
+
+    if row[:responsible_user_id].present?
+      scope.joins(:responsible_assignments)
+           .where(task_assignments: { user_id: row[:responsible_user_id], role: 'responsible' })
+    else
+      scope.left_joins(:responsible_assignments)
+           .where(task_assignments: { id: nil })
+    end
   end
 
   def feature_date_span(planned)

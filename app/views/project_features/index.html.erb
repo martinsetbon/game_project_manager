@@ -9,12 +9,6 @@
         <%= link_to new_project_project_feature_path(@project), class: "btn btn-primary" do %>
           <i class="bi bi-plus-circle"></i> New feature
         <% end %>
-        <%= link_to new_with_tasks_project_project_features_path(@project), class: "btn btn-outline-primary" do %>
-          <i class="bi bi-list-task"></i> New feature with tasks
-        <% end %>
-      <% end %>
-      <%= link_to feature_templates_path, class: "btn btn-outline-info" do %>
-        <i class="bi bi-journal-text"></i> My templates
       <% end %>
     </div>
   </div>
@@ -54,7 +48,7 @@
         </table>
       </div>
     <% else %>
-      <p class="text-muted">No features yet. Create one from this page or from the project timeline.</p>
+      <p class="text-white">No features yet. Create one from this page or from the project timeline.</p>
     <% end %>
   </div>
 </div>

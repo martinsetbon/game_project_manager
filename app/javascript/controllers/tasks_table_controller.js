@@ -252,6 +252,7 @@ export default class extends Controller {
           
           // Restore column visibility states
           this.restoreColumnVisibility(visibleColumns)
+          this.dispatch('refreshed', { bubbles: true })
         }
       } else {
         // Fallback to full page reload if fetch fails
